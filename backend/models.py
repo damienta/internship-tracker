@@ -1,7 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
-# Initialize SQLAlchemy (this will connect to our database)
 db = SQLAlchemy()
 
 class Internship(db.Model):
