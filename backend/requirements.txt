@@ -2,6 +2,7 @@
 requests==2.31.0 # HTTP requests to fetch web pages
 beautifulsoup4==4.12.2 # Parse HTML and extract data
 selenium==4.15.2 # JS rendering for dynamic content
+webdriver-manager==4.0.1 # Automatic ChromeDriver management for Selenium
 urllib3==2.1.0 # URL handling and robots.txt checking
 
 # Database
