@@ -35,32 +35,7 @@ COMPANY_CONFIGS = {
         'link_selector': 'a.jobTitle-link',
         'notes': 'UK telecoms company - table-based job listings'
     },
-    
-    'Arm': {
-        'careers_url': 'https://careers.arm.com/search-jobs',
-        'job_card_selector': 'li.job-card',
-        'title_selector': 'a.job-card__title',
-        'location_selector': 'span.job-card__location',
-        'link_selector': 'a.job-card__title',
-        'notes': 'UK tech company - list-based layout'
-    },
-    
-    'Man Group': {
-        'careers_url': 'https://www.man.com/careers',
-        'job_card_selector': 'tr.job-post',
-        'title_selector': 'p.body--medium',
-        'location_selector': 'p.body__secondary',
-        'link_selector': 'a',
-        'notes': 'Table-based layout - may be blocked by robots.txt'
-    },
-    
-    'Goldman Sachs': {
-        'careers_url': 'https://www.goldmansachs.com/careers/students/programs/',
-        'job_card_selector': 'div.job-result',
-        'title_selector': 'h3.job-title',
-        'location_selector': 'span.location',
-        'notes': 'Standard div-based with custom classes'
-    },
+
     
     # Template for adding more companies:
     # 'Company Name': {

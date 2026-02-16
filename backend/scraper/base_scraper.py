@@ -66,7 +66,9 @@ class BaseScraper:
         self.target_keywords = [
             'intern', 'internship', 'placement',
             'graduate', 'grad role', 'new grad', 'graduate scheme',
-            'grad scheme', 'early career', 'entry level', 'grad'
+            'grad scheme', 'early career', 'entry level', 'grad',
+            'placement', 'industrial placement', 'sandwich placement',
+            'year in industry', 'sandwich year', 'industrial year', 'placement'
         ]
         
         logger.info(f"Initialized scraper for {company_name}")
@@ -199,9 +201,16 @@ class BaseScraper:
         title = title or ""
         description = description or ""
         
+        # Split text into words to check for exact matches
         text = (title + " " + description).lower()
+        words = text.split()
         
-        return any(keyword in text for keyword in self.target_keywords)
+        # Check if any keyword appears as a complete word
+        for keyword in self.target_keywords:
+            if keyword in words:
+                return True
+        
+        return False
     
     def extract_job_cards(self, soup) -> List:
         """
@@ -411,11 +420,33 @@ class BaseScraper:
                 None
             )
             
-            # Look in text for posted date
+            # Look in text for posted date (handle newlines and variations)
             if not date_posted:
-                date_match = re.search(r'(?:posted|published|date posted):?\s*:?\s*([\w\s,]+\d{4})', page_text, re.IGNORECASE)
+                # Match "Posting Date: \n 14 Feb 2026" or "Posted: 14 Feb 2026"
+                date_match = re.search(r'(?:posting date|posted|published|date posted):?\s*:?\s*([\w\s,]+?\d{4})', page_text, re.IGNORECASE | re.DOTALL)
                 if date_match:
                     date_posted = date_match.group(1).strip()
+            
+            # Extract start date (if available)
+            start_date = None
+            start_date_patterns = [
+                '.start-date', '[class*="start-date"]',
+                '[class*="starting-date"]', '.commencement-date', '.commence-date'
+            ]
+            for pattern in start_date_patterns:
+                elem = soup.select_one(pattern)
+                if elem:
+                    start_date = elem.get_text(strip=True)
+                    break
+            
+            # Look in text for start date
+            if not start_date:
+                # Match "Start Date: 7th September 2026" or "Start Date: 22nd June 26"
+                # Require delimiter (: or -) to avoid false matches
+                # Handle both 2-digit (26) and 4-digit (2026) years
+                start_match = re.search(r'(?:start date|commencement date|starting date|begins)\s*[:\-–—]\s*([\d\w\s,()]+?(?:\d{4}|\d{2}(?:\s|\(|$)))', page_text, re.IGNORECASE | re.DOTALL)
+                if start_match:
+                    start_date = start_match.group(1).strip()
             
             # Try to find deadline with various patterns
             deadline = None
@@ -429,10 +460,10 @@ class BaseScraper:
                     deadline = elem.get_text(strip=True)
                     break
             
-            # Look in text for common phrases
+            # Look in text for common phrases (handle newlines and dashes)
             if not deadline:
-                # Match patterns like "Apply by date: 22nd February 2026"
-                deadline_match = re.search(r'(?:deadline|closing date|apply by date|apply by|close date):?\s*:?\s*([\w\s,]+\d{4})', page_text, re.IGNORECASE)
+                # Match patterns like "Apply by date: 22nd February 2026" or "Apply by Date– 22nd February 2026"
+                deadline_match = re.search(r'(?:deadline|closing date|apply by date|apply by|close date):?\s*[:\-–—]?\s*([\w\s,]+?\d{4})', page_text, re.IGNORECASE | re.DOTALL)
                 if deadline_match:
                     deadline = deadline_match.group(1).strip()
             
@@ -451,6 +482,7 @@ class BaseScraper:
             return {
                 'date_posted': date_posted,
                 'deadline': deadline,
+                'start_date': start_date,
                 'description': description
             }
             
@@ -464,7 +496,7 @@ class BaseScraper:
         
         Process:
         1. Fetch the careers page
-        2. Find all job cards
+        2. Find all job cards (with pagination)
         3. Extract data from each card
         4. Filter for internships/graduate roles
         5. Return list of relevant jobs
@@ -474,35 +506,60 @@ class BaseScraper:
         """
         logger.info(f"Scraping {self.company_name} careers page: {self.careers_url}")
         
-        # Fetch the page
-        soup = self.fetch_page(self.careers_url)
-        if not soup:
-            logger.error(f"Failed to fetch page for {self.company_name}")
-            return []
+        all_job_cards = []
+        current_url = self.careers_url
+        page_num = 1
+        max_pages = 10  # Safety limit to avoid infinite loops
         
-        # Find all job cards
-        job_cards = self.extract_job_cards(soup)
-        if not job_cards:
-            return []
+        # Fetch all pages
+        while current_url and page_num <= max_pages:
+            logger.info(f"Fetching page {page_num}: {current_url}")
+            
+            soup = self.fetch_page(current_url)
+            if not soup:
+                logger.error(f"Failed to fetch page {page_num}")
+                break
+            
+            # Find job cards on this page
+            job_cards = self.extract_job_cards(soup)
+            if not job_cards:
+                logger.info(f"No job cards found on page {page_num}")
+                break
+            
+            all_job_cards.extend(job_cards)
+            logger.info(f"Found {len(job_cards)} jobs on page {page_num} (total: {len(all_job_cards)})")
+            
+            # Look for next page link
+            next_url = self.find_next_page(soup, current_url)
+            if next_url:
+                current_url = next_url
+                page_num += 1
+            else:
+                logger.info("No more pages found")
+                break
+        
+        logger.info(f"Total jobs found across {page_num} pages: {len(all_job_cards)}")
         
         # Extract data and filter for relevant roles
         relevant_jobs = []
         
-        for card in job_cards:
+        for card in all_job_cards:
             job_data = self.extract_job_data(card)
             
             if job_data and self.is_relevant_role(job_data['title'], job_data['description']):
                 # This is a relevant intern/graduate role - fetch full details
                 job_url = job_data.get('url')
-                if job_url and (not job_data['date_posted'] or not job_data['deadline'] or not job_data['description']):
+                if job_url and (not job_data.get('date_posted') or not job_data.get('deadline') or not job_data.get('start_date') or not job_data['description']):
                     logger.info(f"Fetching details for: {job_data['title']}")
                     detail_data = self.fetch_job_details(job_url)
                     if detail_data:
                         # Update with detail page information
-                        if not job_data['date_posted'] and detail_data.get('date_posted'):
+                        if not job_data.get('date_posted') and detail_data.get('date_posted'):
                             job_data['date_posted'] = detail_data['date_posted']
-                        if not job_data['deadline'] and detail_data.get('deadline'):
+                        if not job_data.get('deadline') and detail_data.get('deadline'):
                             job_data['deadline'] = detail_data['deadline']
+                        if not job_data.get('start_date') and detail_data.get('start_date'):
+                            job_data['start_date'] = detail_data['start_date']
                         # Get fuller description if available
                         if not job_data['description'] and detail_data.get('description'):
                             job_data['description'] = detail_data['description']
@@ -512,24 +569,71 @@ class BaseScraper:
         
         logger.info(f"Found {len(relevant_jobs)} internship/graduate roles at {self.company_name}")
         return relevant_jobs
-
-
-# List of companies to scrape
-COMPANY_TARGETS = [
-    {
-        'name': 'Google',
-        'url': 'https://www.google.com/about/careers/applications/jobs/results/'
-    },
-    {
-        'name': 'Microsoft',
-        'url': 'https://careers.microsoft.com/professionals/us/en/search-results'
-    },
-    {
-        'name': 'Meta',
-        'url': 'https://www.metacareers.com/jobs/'
-    },
-    {
-        'name': 'Amazon',
-        'url': 'https://www.amazon.jobs/en/search'
-    },
-]
+    
+    def find_next_page(self, soup: BeautifulSoup, current_url: str) -> Optional[str]:
+        """
+        Find the next page link for pagination.
+        Tries multiple common pagination patterns in order.
+        
+        Args:
+            soup: BeautifulSoup object of current page
+            current_url: Current page URL
+            
+        Returns:
+            URL of next page, or None if no next page
+        """
+        from urllib.parse import urljoin, urlparse, parse_qs
+        
+        # Strategy 1: URL parameter with page number (?page=2, ?p=2)
+        for param in ['page', 'p', 'pg']:
+            links = soup.select(f'a[href*="{param}="]')
+            if links:
+                parsed = urlparse(current_url)
+                params = parse_qs(parsed.query)
+                current_page = int(params.get(param, ['0'])[0]) if param in params else 0
+                next_page = current_page + 1
+                
+                for link in links:
+                    href = link.get('href', '')
+                    if f'{param}={next_page}' in href:
+                        return urljoin(current_url, href)
+        
+        # Strategy 2: URL parameter with startrow/offset (?startrow=25, ?offset=25)
+        for param, increment in [('startrow', 25), ('offset', 25), ('start', 25)]:
+            links = soup.select(f'a[href*="{param}="]')
+            if links:
+                parsed = urlparse(current_url)
+                params = parse_qs(parsed.query)
+                current_val = int(params.get(param, ['0'])[0]) if param in params else 0
+                next_val = current_val + increment
+                
+                for link in links:
+                    href = link.get('href', '')
+                    if f'{param}={next_val}' in href:
+                        return urljoin(current_url, href)
+        
+        # Strategy 3: Next button/link with common selectors
+        next_selectors = [
+            'a[aria-label*="next" i]',
+            'a[title*="next" i]',
+            'a.next',
+            'a.pagination-next',
+            'a[rel="next"]',
+            'li.next a',
+            'a:contains("Next")',
+            'button[aria-label*="next" i]'
+        ]
+        
+        for selector in next_selectors:
+            try:
+                next_link = soup.select_one(selector)
+                if next_link:
+                    href = next_link.get('href')
+                    if href:
+                        if not href.startswith('http'):
+                            href = urljoin(current_url, href)
+                        return href
+            except:
+                continue
+        
+        return None
