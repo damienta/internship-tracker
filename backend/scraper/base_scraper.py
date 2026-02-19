@@ -67,8 +67,9 @@ class BaseScraper:
             'intern', 'internship', 'placement',
             'graduate', 'grad role', 'new grad', 'graduate scheme',
             'grad scheme', 'early career', 'entry level', 'grad',
-            'placement', 'industrial placement', 'sandwich placement',
-            'year in industry', 'sandwich year', 'industrial year', 'placement'
+            'industrial placement', 'sandwich placement',
+            'year in industry', 'sandwich year', 'industrial year',
+            'apprenticeship', 'apprentice', 'degree apprenticeship',
         ]
         
         logger.info(f"Initialized scraper for {company_name}")
@@ -584,13 +585,20 @@ class BaseScraper:
         """
         from urllib.parse import urljoin, urlparse, parse_qs
         
-        # Strategy 1: URL parameter with page number (?page=2, ?p=2)
+        # Strategy 1: URL parameter with page number (?page=2, ?p=2 or path-style &p=2)
         for param in ['page', 'p', 'pg']:
             links = soup.select(f'a[href*="{param}="]')
             if links:
                 parsed = urlparse(current_url)
                 params = parse_qs(parsed.query)
-                current_page = int(params.get(param, ['0'])[0]) if param in params else 0
+                # Also check for &param=N in the URL path (e.g. Barclays: /search-jobs&p=1)
+                path_match = re.search(rf'[?&]{re.escape(param)}=(\d+)', current_url)
+                if path_match:
+                    current_page = int(path_match.group(1))
+                elif param in params:
+                    current_page = int(params[param][0])
+                else:
+                    current_page = 0
                 next_page = current_page + 1
                 
                 for link in links:
@@ -599,7 +607,8 @@ class BaseScraper:
                         return urljoin(current_url, href)
         
         # Strategy 2: URL parameter with startrow/offset (?startrow=25, ?offset=25)
-        for param, increment in [('startrow', 25), ('offset', 25), ('start', 25)]:
+        # Also handles HSBC pipelineOffset (increment 10)
+        for param, increment in [('startrow', 25), ('pipelineOffset', 10), ('offset', 25), ('start', 25)]:
             links = soup.select(f'a[href*="{param}="]')
             if links:
                 parsed = urlparse(current_url)

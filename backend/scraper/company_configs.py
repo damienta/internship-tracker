@@ -36,7 +36,29 @@ COMPANY_CONFIGS = {
         'notes': 'UK telecoms company - table-based job listings'
     },
 
-    
+    # robots.txt: mycareer.hsbc.com explicitly Allow: /external
+    # HTML-rendered via Avature ATS - 10 jobs/page, pipelineOffset pagination
+    'HSBC': {
+        'careers_url': 'https://mycareer.hsbc.com/en_GB/external/SearchJobs/?pipelineRecordsPerPage=10&pipelineOffset=0',
+        'job_card_selector': 'article.article--result',
+        'title_selector': 'h3.article__header__text__title a',
+        'location_selector': 'span.location',
+        'link_selector': 'h3.article__header__text__title a',
+        'notes': 'UK/global bank - Avature ATS, 10 jobs/page, pipelineOffset pagination'
+    },
+
+    # SAP UK - same Taleo ATS as BT Group, identical selectors
+    # 235 intern/grad/apprenticeship roles across UK locations
+    # Pagination: startrow=25, startrow=50 etc (handled automatically)
+    'SAP': {
+        'careers_url': 'https://jobs.sap.com/search/?q=intern+graduate&locationsearch=UK+United+Kingdom&location=GBR',
+        'job_card_selector': 'tr.data-row',
+        'title_selector': 'a.jobTitle-link',
+        'location_selector': 'span.jobLocation',
+        'link_selector': 'a.jobTitle-link',
+        'notes': 'Enterprise software - Taleo ATS, same structure as BT Group, startrow pagination, UK-filtered'
+    },
+
     # Template for adding more companies:
     # 'Company Name': {
     #     'careers_url': 'https://company.com/careers',
