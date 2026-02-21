@@ -3,17 +3,17 @@ Company-specific scraper that uses custom configurations.
 
 This scraper:
 1. Checks if company has custom config in company_configs.py
-2. If yes: Uses those specific selectors (guaranteed to work)
-3. If no: Falls back to BaseScraper's 30+ generic patterns
+2. If yes: Uses those specific selectors
+3. If no: Falls back to BaseScraper's generic patterns
 
 This hybrid approach ensures reliability across different websites.
 
 Example usage:
     scraper = CompanyScraper(
-        company_name="Man Group",
+        company_name="BT",
         user_agent="Mozilla/5.0..."
     )
-    jobs = scraper.scrape()  # Uses Man Group's custom selectors
+    jobs = scraper.scrape()
 """
 
 import logging
@@ -85,8 +85,8 @@ class CompanyScraper(BaseScraper):
         Override to prioritize company-specific selectors.
         
         Workflow:
-        1. If company has custom config → use that selector (most reliable)
-        2. Otherwise → fall back to BaseScraper's 30+ generic patterns
+        1. If company has custom config, use that selector
+        2. Otherwise, fall back to BaseScraper's generic patterns
         
         Args:
             soup: BeautifulSoup object of careers page
@@ -94,7 +94,7 @@ class CompanyScraper(BaseScraper):
         Returns:
             List of job card elements
         """
-        # Try custom selector first (if configured)
+        # Try custom selector first
         if self.config and 'job_card_selector' in self.config:
             custom_selector = self.config['job_card_selector']
             job_cards = soup.select(custom_selector)
@@ -106,7 +106,7 @@ class CompanyScraper(BaseScraper):
                 logger.warning(f"⚠️  Custom selector '{custom_selector}' found no results")
                 logger.info("Falling back to generic patterns...")
         
-        # Fall back to generic patterns (BaseScraper's 30+ selectors)
+        # Fall back to generic patterns
         return super().extract_job_cards(soup)
     
     

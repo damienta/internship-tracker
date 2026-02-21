@@ -266,7 +266,7 @@ class GreenhouseScraper:
                 "deadline":     None,   # Greenhouse API doesn't expose closing date
                 "start_date":   None,
                 "scraped_at":   datetime.now().isoformat(),
-                "source":       "greenhouse",
+                "source_website": "greenhouse",
             })
 
         logger.info(

@@ -27,6 +27,8 @@ from typing import Dict, Optional
 # Company-specific configurations
 # Add custom selectors here when default patterns don't work
 COMPANY_CONFIGS = {
+    # BT
+    # Taleo ATS, table-based listings, pagination with &p=1, &p=2 etc.
     'BT Group': {
         'careers_url': 'https://jobs.bt.com/search/?createNewAlert=false&q=&locationsearch=&optionsFacetsDD_brand=&optionsFacetsDD_customfield3=',
         'job_card_selector': 'tr.data-row',
@@ -36,8 +38,8 @@ COMPANY_CONFIGS = {
         'notes': 'UK telecoms company - table-based job listings'
     },
 
-    # robots.txt: mycareer.hsbc.com explicitly Allow: /external
-    # HTML-rendered via Avature ATS - 10 jobs/page, pipelineOffset pagination
+    # HSBC
+    # HTML-rendered via Avature ATS pipelineOffset pagination
     'HSBC': {
         'careers_url': 'https://mycareer.hsbc.com/en_GB/external/SearchJobs/?pipelineRecordsPerPage=10&pipelineOffset=0',
         'job_card_selector': 'article.article--result',
@@ -47,9 +49,8 @@ COMPANY_CONFIGS = {
         'notes': 'UK/global bank - Avature ATS, 10 jobs/page, pipelineOffset pagination'
     },
 
-    # SAP UK - same Taleo ATS as BT Group, identical selectors
-    # 235 intern/grad/apprenticeship roles across UK locations
-    # Pagination: startrow=25, startrow=50 etc (handled automatically)
+    # SAP UK
+    # Pagination: startrow=25, startrow=50 etc.
     'SAP': {
         'careers_url': 'https://jobs.sap.com/search/?q=intern+graduate&locationsearch=UK+United+Kingdom&location=GBR',
         'job_card_selector': 'tr.data-row',

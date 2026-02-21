@@ -8,7 +8,6 @@ from urllib.parse import urlparse, urljoin
 from urllib.robotparser import RobotFileParser
 from bs4 import BeautifulSoup
 
-# Set up logging to track scraper activity
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -17,7 +16,6 @@ class BaseScraper:
     """
     Base scraper for job listings.
     Provides common functionality for scraping with robots.txt compliance.
-    Child classes (LinkedInJobsScraper, IndeedScraper) inherit from this.
     """
     
     def __init__(self, company_name: str, careers_url: str, 
@@ -50,7 +48,7 @@ class BaseScraper:
         self.timeout = timeout
         self.domain = urlparse(base_url).netloc
         
-        # Session for persistent connections (faster)
+        # Session for persistent connections
         self.session = requests.Session()
         self.session.headers.update({'User-Agent': user_agent})
         
@@ -69,7 +67,6 @@ class BaseScraper:
             'grad scheme', 'early career', 'entry level', 'grad',
             'industrial placement', 'sandwich placement',
             'year in industry', 'sandwich year', 'industrial year',
-            'apprenticeship', 'apprentice', 'degree apprenticeship',
         ]
         
         logger.info(f"Initialized scraper for {company_name}")
@@ -87,7 +84,6 @@ class BaseScraper:
             logger.info(f"Successfully loaded robots.txt from {robots_url}")
         except Exception as e:
             logger.warning(f"Could not load robots.txt from {robots_url}: {e}")
-            logger.warning("Proceeding with caution - will scrape slowly")
     
     def is_scraping_permitted(self, url: str) -> bool:
         """
@@ -130,8 +126,7 @@ class BaseScraper:
             # Parse HTML into BeautifulSoup
             soup = BeautifulSoup(response.content, 'html.parser') # Takes HTML tags and creates a parse tree for easy data extraction
             
-            # Be polite - wait before next request
-            time.sleep(self.delay)
+            time.sleep(self.delay) # Delay to avoid overwhelming the server
             
             return soup
             
@@ -176,7 +171,7 @@ class BaseScraper:
         Returns:
             <a href="https://google.com/apply">Click Here</a> -> "https://google.com/apply"
         """
-        element = soup.select_one(selector)
+        element = soup.select_one(selector) # Find first element that matches HTML element
         
         if element and element.has_attr(attribute):
             return element[attribute]
@@ -222,6 +217,7 @@ class BaseScraper:
         - <article class="job-listing">
         - <li class="position">
         - <tr class="job-row">
+        If one found, it returns results found with that selector. If none found, returns empty list.
         
         Args:
             soup: BeautifulSoup object of the careers page
@@ -231,15 +227,12 @@ class BaseScraper:
         """
         # Try common job card selectors (different companies use different HTML)
         common_selectors = [
-            # Table-based patterns
             'tr.job-post',
             'tr.job-posts',
             'tr.job-listing',
             'tr.job-row',
             'tr[class*="job"]',
             'tr[data-job]',
-            
-            # Div-based patterns (most common)
             'div.job-card',
             'div.job-listing',
             'div.job-item',
@@ -251,23 +244,17 @@ class BaseScraper:
             'div.position',
             'div.opening',
             'div.career-item',
-            
-            # Article/Section patterns
             'article.job',
             'article[class*="job"]',
             'section.job',
-            
-            # List-based patterns
             'li.job',
             'li.job-listing',
             'li[class*="job"]',
-            
-            # Link-based patterns (some sites wrap everything in <a>)
             'a.job-link',
             'a[class*="job-card"]'
         ]
         
-        for selector in common_selectors:
+        for selector in common_selectors: # For all selectors, how many results show up
             job_cards = soup.select(selector)
             if job_cards:
                 logger.info(f"Found {len(job_cards)} job cards using selector: {selector}")
@@ -296,19 +283,16 @@ class BaseScraper:
             Dictionary with job data, or None if extraction fails
         """
         try:
-            # Extract title (try multiple selectors)
+            # Extract title
             title = (
-                # Heading tags
                 self.extract_text(job_card, 'h2') or
                 self.extract_text(job_card, 'h3') or
                 self.extract_text(job_card, 'h4') or
 
-                # Common class patterns
                 self.extract_text(job_card, '.job-title') or
                 self.extract_text(job_card, '.title') or
                 self.extract_text(job_card, '.position-title') or
 
-                # Generic patterns (first <p> or <a> as fallback)
                 self.extract_text(job_card, 'a') or
                 self.extract_text(job_card, 'p')
             )
@@ -318,12 +302,10 @@ class BaseScraper:
             
             # Extract location
             location = (
-                # Common class patterns
                 self.extract_text(job_card, '.location') or
                 self.extract_text(job_card, '.job-location') or
                 self.extract_text(job_card, '[class*="location"]') or
 
-                # Generic patterns
                 self.extract_text(job_card, 'span.location') or
                 self.extract_text(job_card, '[data-location]') or
                 "Location not specified"
@@ -345,7 +327,6 @@ class BaseScraper:
             description = ""
             all_p_tags = job_card.find_all('p')
             if len(all_p_tags) > 2:  # If more than title + location
-                # Get paragraphs that aren't title or location
                 for p in all_p_tags:
                     text = p.get_text(strip=True)
                     if text and text != title and text != location:
@@ -421,9 +402,10 @@ class BaseScraper:
                 None
             )
             
-            # Look in text for posted date (handle newlines and variations)
+            # Look in text for posted date
             if not date_posted:
                 # Match "Posting Date: \n 14 Feb 2026" or "Posted: 14 Feb 2026"
+                # Delimiter (: or -) to prevent false matches
                 date_match = re.search(r'(?:posting date|posted|published|date posted):?\s*:?\s*([\w\s,]+?\d{4})', page_text, re.IGNORECASE | re.DOTALL)
                 if date_match:
                     date_posted = date_match.group(1).strip()
@@ -443,8 +425,7 @@ class BaseScraper:
             # Look in text for start date
             if not start_date:
                 # Match "Start Date: 7th September 2026" or "Start Date: 22nd June 26"
-                # Require delimiter (: or -) to avoid false matches
-                # Handle both 2-digit (26) and 4-digit (2026) years
+                # Handle both 2-digit (26) and 4-digit (2026) years (\d2 or \d4)
                 start_match = re.search(r'(?:start date|commencement date|starting date|begins)\s*[:\-–—]\s*([\d\w\s,()]+?(?:\d{4}|\d{2}(?:\s|\(|$)))', page_text, re.IGNORECASE | re.DOTALL)
                 if start_match:
                     start_date = start_match.group(1).strip()
@@ -461,9 +442,8 @@ class BaseScraper:
                     deadline = elem.get_text(strip=True)
                     break
             
-            # Look in text for common phrases (handle newlines and dashes)
+            # Look in text for common phrases
             if not deadline:
-                # Match patterns like "Apply by date: 22nd February 2026" or "Apply by Date– 22nd February 2026"
                 deadline_match = re.search(r'(?:deadline|closing date|apply by date|apply by|close date):?\s*[:\-–—]?\s*([\w\s,]+?\d{4})', page_text, re.IGNORECASE | re.DOTALL)
                 if deadline_match:
                     deadline = deadline_match.group(1).strip()
@@ -477,7 +457,7 @@ class BaseScraper:
             for selector in desc_selectors:
                 elem = soup.select_one(selector)
                 if elem:
-                    description = elem.get_text(strip=True)[:500]  # First 500 chars
+                    description = elem.get_text(strip=True)[:1000]  # First 1000 chars
                     break
             
             return {
@@ -498,8 +478,8 @@ class BaseScraper:
         Process:
         1. Fetch the careers page
         2. Find all job cards (with pagination)
-        3. Extract data from each card
-        4. Filter for internships/graduate roles
+        3. Filter job cards by title/description for relevant roles
+        4. Extract data from each card - if not enough data in job card, visit individual job page to get more details
         5. Return list of relevant jobs
         
         Returns:
@@ -512,7 +492,7 @@ class BaseScraper:
         page_num = 1
         max_pages = 10  # Safety limit to avoid infinite loops
         
-        # Fetch all pages
+        # Fetch all pages and collect job cards
         while current_url and page_num <= max_pages:
             logger.info(f"Fetching page {page_num}: {current_url}")
             
@@ -527,7 +507,7 @@ class BaseScraper:
                 logger.info(f"No job cards found on page {page_num}")
                 break
             
-            all_job_cards.extend(job_cards)
+            all_job_cards.extend(job_cards) # Add those job_cards to all_job_cards list
             logger.info(f"Found {len(job_cards)} jobs on page {page_num} (total: {len(all_job_cards)})")
             
             # Look for next page link
@@ -545,14 +525,15 @@ class BaseScraper:
         relevant_jobs = []
         
         for card in all_job_cards:
-            job_data = self.extract_job_data(card)
+            job_data = self.extract_job_data(card) # Extracts title, location, url etc. from the job card
             
             if job_data and self.is_relevant_role(job_data['title'], job_data['description']):
                 # This is a relevant intern/graduate role - fetch full details
                 job_url = job_data.get('url')
+                # Checks if anything is missing
                 if job_url and (not job_data.get('date_posted') or not job_data.get('deadline') or not job_data.get('start_date') or not job_data['description']):
                     logger.info(f"Fetching details for: {job_data['title']}")
-                    detail_data = self.fetch_job_details(job_url)
+                    detail_data = self.fetch_job_details(job_url) # Visit the individual job page to get more info like date posted, deadline, full description
                     if detail_data:
                         # Update with detail page information
                         if not job_data.get('date_posted') and detail_data.get('date_posted'):
@@ -589,10 +570,10 @@ class BaseScraper:
         for param in ['page', 'p', 'pg']:
             links = soup.select(f'a[href*="{param}="]')
             if links:
-                parsed = urlparse(current_url)
-                params = parse_qs(parsed.query)
+                parsed = urlparse(current_url) # Split URL into components
+                params = parse_qs(parsed.query) # Query e.g page=2&location=London 
                 # Also check for &param=N in the URL path (e.g. Barclays: /search-jobs&p=1)
-                path_match = re.search(rf'[?&]{re.escape(param)}=(\d+)', current_url)
+                path_match = re.search(rf'[?&]{re.escape(param)}=(\d+)', current_url) # Safety net to find current page number
                 if path_match:
                     current_page = int(path_match.group(1))
                 elif param in params:
