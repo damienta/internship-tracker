@@ -1,5 +1,5 @@
 """
-GreenhouseScraper — calls the public Greenhouse jobs API for a list of companies.
+GreenhouseScraper - calls the public Greenhouse jobs API for a list of companies.
 
 API endpoint:
     GET https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true
@@ -10,7 +10,7 @@ Adding a new company:
 
 Usage:
     scraper = GreenhouseScraper()
-    jobs = scraper.scrape()          # all companies
+    jobs = scraper.scrape() # all companies
     jobs = scraper.scrape_company("graphcore", "Graphcore")  # one company
 """
 
@@ -200,7 +200,7 @@ class GreenhouseScraper:
         """Strip HTML tags from the Greenhouse job description.
 
         Greenhouse returns the content field as HTML-escaped text
-        (e.g. &lt;h2&gt;), so we unescape first, then strip the tags.
+        (e.g converts &lt;div\&gt to <div>), unescape first, then strip the tags.
         """
         if not html_content:
             return ""
@@ -215,7 +215,7 @@ class GreenhouseScraper:
         Fetch and filter all jobs for a single Greenhouse company.
 
         Args:
-            slug:         Greenhouse board slug (e.g. "graphcore")
+            slug: Greenhouse board slug (e.g. "graphcore")
             company_name: Display name (e.g. "Graphcore")
 
         Returns:
@@ -225,7 +225,7 @@ class GreenhouseScraper:
         logger.info(f"Fetching {company_name} from Greenhouse ({slug})...")
 
         try:
-            response = self.session.get(
+            response = self.session.get( # Retrieving JSON data from Greenhouse API endpoint
                 url,
                 params={"content": "true"},  # include job description HTML
                 timeout=self.timeout,

@@ -368,6 +368,7 @@ class BaseScraper:
                 'source_website': self.company_name,
                 'date_posted': date_posted,
                 'deadline': deadline,
+                'salary_range': None,  # Filled in by fetch_job_details for Taleo sites
                 'scraped_at': datetime.utcnow().isoformat()
             }
             
@@ -391,17 +392,29 @@ class BaseScraper:
             if not soup:
                 return None
             
-            # Get all text content to search for dates
-            page_text = soup.get_text().lower()
-            
-            # Extract date posted (if available on detail page)
-            date_posted = (
-                self.extract_text(soup, '.date') or
-                self.extract_text(soup, '.posted-date') or
-                self.extract_text(soup, 'time') or
-                None
-            )
-            
+            page_text = soup.get_text().lower() # Retrieve all text
+
+            # Taleo ATS structured fields (BT Group, SAP)
+            # Each field: <span class="joblayouttoken-label">Label:</span>
+            # <span class="rtltextaligneligible">Value</span>
+            taleo_fields = {}
+            for label_span in soup.select('span.joblayouttoken-label'):
+                key = label_span.get_text(strip=True).rstrip(':').lower()
+                value_span = label_span.find_next_sibling('span')
+                if value_span:
+                    taleo_fields[key] = value_span.get_text(strip=True)
+
+            salary_range = taleo_fields.get('salary') or None
+            date_posted = taleo_fields.get('posting date') or None
+
+            if not date_posted:
+                date_posted = (
+                    self.extract_text(soup, '.date') or
+                    self.extract_text(soup, '.posted-date') or
+                    self.extract_text(soup, 'time') or
+                    None
+                )
+
             # Look in text for posted date
             if not date_posted:
                 # Match "Posting Date: \n 14 Feb 2026" or "Posted: 14 Feb 2026"
@@ -464,7 +477,8 @@ class BaseScraper:
                 'date_posted': date_posted,
                 'deadline': deadline,
                 'start_date': start_date,
-                'description': description
+                'description': description,
+                'salary_range': salary_range,
             }
             
         except Exception as e:
@@ -545,6 +559,9 @@ class BaseScraper:
                         # Get fuller description if available
                         if not job_data['description'] and detail_data.get('description'):
                             job_data['description'] = detail_data['description']
+                        # Salary — populated for Taleo sites (BT, SAP)
+                        if not job_data.get('salary_range') and detail_data.get('salary_range'):
+                            job_data['salary_range'] = detail_data['salary_range']
                 
                 relevant_jobs.append(job_data)
                 logger.info(f"Found relevant role: {job_data['title']}")

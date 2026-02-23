@@ -1,7 +1,6 @@
 # Web Scraping
 requests==2.31.0 # HTTP requests to fetch web pages
 beautifulsoup4==4.12.2 # Parse HTML and extract data
-playwright>=1.40.0 # JS rendering for dynamic career pages (run: playwright install chromium)
 urllib3==2.1.0 # URL handling and robots.txt checking
 
 # Database

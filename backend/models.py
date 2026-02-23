@@ -57,7 +57,7 @@ class Internship(db.Model):
             'requirements': self.requirements,
             'salary_range': self.salary_range,
             'date_posted': self.date_posted.isoformat() if self.date_posted else None,
-            'application_deadline': self.application_deadline.isoformat() if self.application_deadline else None,
+            'deadline': self.deadline.isoformat() if self.deadline else None,
             'url': self.url,
             'source_website': self.source_website,
             'scraped_at': self.scraped_at.isoformat() if self.scraped_at else None,
