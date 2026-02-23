@@ -1,12 +1,15 @@
 """
-GreenhouseScraper - calls the public Greenhouse jobs API for a list of companies.
+greenhouse_scraper - calls the public Greenhouse jobs API for a list of companies.
+
+Scrapes UK internship/graduate roles from companies using the Lever ATS
+via the public JSON API - no authentication required.
 
 API endpoint:
     GET https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true
     → {"jobs": [{"id", "title", "location": {"name"}, "content", "absolute_url", ...}]}
 
 Adding a new company:
-    Just add an entry to GREENHOUSE_COMPANIES below — no other code changes needed.
+    Just add an entry to GREENHOUSE_COMPANIES below - no other code changes needed.
 
 Usage:
     scraper = GreenhouseScraper()
@@ -15,7 +18,7 @@ Usage:
 """
 
 import logging
-import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import List, Dict, Optional
 
@@ -27,7 +30,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Company list: (display_name, greenhouse_slug)
 # To add a company: find their slug from https://boards.greenhouse.io/{slug}
-# or check their careers URL (e.g. boards.greenhouse.io/monzo → slug = "monzo")
 # ---------------------------------------------------------------------------
 GREENHOUSE_COMPANIES: List[tuple] = [
     ("Graphcore", "graphcore"),
@@ -164,26 +166,28 @@ class GreenhouseScraper:
         self,
         companies: Optional[List[tuple]] = None,
         uk_only: bool = True,
-        delay: float = 0.5,
         timeout: int = 10,
+        workers: int = 10,
     ):
         """
         Args:
             companies: list of (name, slug) tuples. Defaults to GREENHOUSE_COMPANIES.
             uk_only:   if True, only return roles with a UK/London location.
-                       if False, return all matching roles regardless of location.
-            delay:     seconds to wait between company requests (be polite).
             timeout:   request timeout in seconds.
+            workers:   number of concurrent threads.
         """
         self.companies = companies or GREENHOUSE_COMPANIES
         self.uk_only = uk_only
-        self.delay = delay
         self.timeout = timeout
+        self.workers = workers
         self.session = requests.Session()
         self.session.headers.update({
             "User-Agent": "Mozilla/5.0 (compatible; InternshipTracker/1.0)",
             "Accept": "application/json",
         })
+        adapter = requests.adapters.HTTPAdapter(pool_connections=workers, pool_maxsize=workers)
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
 
     # Filtering helpers
     def _is_relevant_title(self, title: str) -> bool:
@@ -277,23 +281,30 @@ class GreenhouseScraper:
     # Scrape all companies
     def scrape(self) -> List[Dict]:
         """
-        Scrape all companies in self.companies and return combined results.
+        Scrape all companies in self.companies concurrently and return combined results.
 
         Returns:
             List of job dicts from all companies combined.
         """
+        logger.info(f"[Greenhouse] Scraping {len(self.companies)} companies ({self.workers} workers, timeout={self.timeout}s)...")
+
         all_results: List[Dict] = []
 
-        for i, (company_name, slug) in enumerate(self.companies):
-            jobs = self.scrape_company(slug, company_name)
-            all_results.extend(jobs)
-
-            # Polite delay between requests (skip after last company)
-            if i < len(self.companies) - 1:
-                time.sleep(self.delay)
+        with ThreadPoolExecutor(max_workers=self.workers) as pool:
+            futures = {
+                pool.submit(self.scrape_company, slug, company_name): company_name
+                for company_name, slug in self.companies
+            }
+            for future in as_completed(futures):
+                try:
+                    jobs = future.result()
+                    all_results.extend(jobs)
+                except Exception as e:
+                    company_name = futures[future]
+                    logger.warning(f"  {company_name}: unexpected error - {e}")
 
         logger.info(
-            f"Greenhouse scrape complete: {len(all_results)} relevant roles "
+            f"[Greenhouse] Done: {len(all_results)} relevant roles "
             f"across {len(self.companies)} companies"
         )
         return all_results

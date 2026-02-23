@@ -1,3 +1,14 @@
+"""
+app.py - Flask application factory and REST API routes.
+
+Exposes the internship data stored in PostgreSQL via a JSON API.
+
+Endpoints:
+    GET /api/internships - list all internships (supports ?company= and ?source= filters)
+    GET /api/internships/<id> - single internship by id
+    GET /api/stats - summary counts by source and company
+"""
+
 import os
 from flask import Flask, jsonify, request
 from models import db, Internship

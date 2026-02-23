@@ -1,5 +1,5 @@
 """
-Company-specific scraper that uses custom configurations.
+company_scraper - Company-specific scraper that uses custom configurations.
 
 This scraper:
 1. Checks if company has custom config in company_configs.py

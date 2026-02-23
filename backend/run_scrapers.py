@@ -6,7 +6,7 @@ Usage
 Run once manually:
     python run_scrapers.py
 
-Run on a schedule (every 24 hours — keeps running, Ctrl+C to stop):
+Run on a schedule (every 24 hours - keeps running, Ctrl+C to stop):
     python run_scrapers.py --schedule
 
 The `schedule` library (already in requirements.txt) handles the timing.
@@ -23,6 +23,7 @@ from app import create_app
 from models import db
 from scraper.company_scraper import CompanyScraper
 from scraper.greenhouse_scraper import GreenhouseScraper
+from scraper.lever_scraper import LeverScraper
 from scraper.db_writer import save_jobs
 
 logging.basicConfig(
@@ -72,11 +73,24 @@ def run_all_scrapers():
     except Exception as e:
         logger.error(f"[Greenhouse] scraper failed: {e}")
 
+    # Lever scraper (verified companies via JSON API)
+    logger.info("[Lever] Scraping all companies ...")
+    try:
+        lever = LeverScraper()
+        jobs = lever.scrape()
+        logger.info(f"[Lever] {len(jobs)} roles found")
+        stats = save_jobs(jobs)
+        total_saved   += stats["saved"]
+        total_skipped += stats["skipped"]
+        total_errors  += stats["errors"]
+    except Exception as e:
+        logger.error(f"[Lever] scraper failed: {e}")
+
     # Summary
     elapsed = (datetime.now() - start).seconds
     logger.info("=" * 60)
     logger.info(
-        f"Run complete in {elapsed}s — "
+        f"Run complete in {elapsed}s - "
         f"saved={total_saved}, skipped={total_skipped}, errors={total_errors}"
     )
     logger.info("=" * 60)

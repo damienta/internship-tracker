@@ -5,7 +5,7 @@ All scrapers return dicts with these keys:
     title, company, location, description, url,
     source_website, date_posted, deadline, scraped_at
 
-The url column is UNIQUE — duplicate listings are skipped automatically.
+The url column is UNIQUE - duplicate listings are skipped automatically.
 """
 
 import logging
@@ -141,7 +141,7 @@ def save_jobs(jobs: List[Dict]) -> Dict[str, int]:
             db.session.add(internship)
             db.session.commit()
             saved += 1
-            logger.debug(f"Saved: {internship.company} — {internship.title}")
+            logger.debug(f"Saved: {internship.company} - {internship.title}")
 
         except Exception as e:
             db.session.rollback()

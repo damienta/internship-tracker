@@ -1,5 +1,5 @@
 """
-Company-specific scraper configurations.
+company_configs - Company-specific scraper configurations.
 
 This file stores custom CSS selectors for companies that don't match
 the standard patterns in BaseScraper.

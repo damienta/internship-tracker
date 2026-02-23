@@ -1,3 +1,20 @@
+"""
+base_scraper - generic HTML scraper foundation used by all company scrapers.
+
+Provides robots.txt compliance, persistent HTTP sessions, keyword-based
+internship/graduate role detection, multi-page pagination, and Taleo ATS
+field extraction (salary, posting date) for companies like BT Group and SAP.
+
+Extended by CompanyScraper, which layers on company-specific CSS selectors
+from company_configs.py before falling back to these generic patterns.
+
+Usage:
+    from scraper.company_scraper import CompanyScraper
+
+    scraper = CompanyScraper("BT Group")
+    jobs = scraper.scrape()  # list of job dicts
+"""
+
 import requests
 import time
 import logging
@@ -559,7 +576,7 @@ class BaseScraper:
                         # Get fuller description if available
                         if not job_data['description'] and detail_data.get('description'):
                             job_data['description'] = detail_data['description']
-                        # Salary — populated for Taleo sites (BT, SAP)
+                        # Salary - populated for Taleo sites (BT, SAP)
                         if not job_data.get('salary_range') and detail_data.get('salary_range'):
                             job_data['salary_range'] = detail_data['salary_range']
                 

@@ -1,3 +1,10 @@
+"""
+models - SQLAlchemy database models.
+
+Defines the Internship table that stores all scraped job listings.
+The url column is UNIQUE to prevent duplicate entries.
+"""
+
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
@@ -7,7 +14,6 @@ class Internship(db.Model):
     """
     Database model for storing internship listings.
     """
-
     __tablename__ = 'internships'
     # PRIMARY KEY: Unique identifier for each internship
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
