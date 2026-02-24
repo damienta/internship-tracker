@@ -158,6 +158,22 @@ LEVER_COMPANIES = [
     ("ClearScore", "clearscore"),
     ("Darktrace", "darktrace"),
     ("Ro", "ro"),
+    ("Arm", "arm"),
+    ("Accurx", "accurx"),
+    ("Griffin", "griffin-bank"),
+    ("Allica Bank", "allica"),
+    ("Flagstone", "flagstone"),
+    ("Moneyhub", "moneyhub"),
+    ("Grafana Labs", "grafana"),
+    ("Linear", "linear"),
+    ("Netlify", "netlify"),
+    ("Vercel", "vercel"),
+    ("Segment", "segment"),
+    ("Replit", "replit"),
+    ("Zapier", "zapier"),
+    ("Modal", "modal"),
+    ("Together AI", "together"),
+    ("Hex", "hex"),
 ]
 
 # Role keywords - checked against job title (case-insensitive)

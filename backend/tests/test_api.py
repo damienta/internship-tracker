@@ -147,6 +147,10 @@ def test_filter_role_type_intern(client):
     data = client.get("/api/jobs?role_type=intern").get_json()
     assert data["total"] >= 1
 
+def test_filter_role_type_graduate(client):
+    data = client.get("/api/jobs?role_type=graduate").get_json()
+    assert data["total"] >= 1
+
 def test_filter_no_match_returns_empty(client):
     data = client.get("/api/jobs?company=zzznonexistent").get_json()
     assert data["total"] == 0 and data["results"] == []

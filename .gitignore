@@ -58,3 +58,5 @@ htmlcov/
 # Node (for frontend)
 node_modules/
 npm-debug.log
+
+TODO.md

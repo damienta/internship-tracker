@@ -41,14 +41,14 @@ class CompanyScraper(BaseScraper):
         Initialize scraper for a specific company.
         
         Args:
-            company_name: Name of company (e.g., "Google", "Man Group")
+            company_name: Name of company (e.g "Google")
             user_agent: Browser identity string
             careers_url: Optional URL override (uses config if not provided)
             delay: Seconds to wait between requests
             
         Example:
-            # Uses Man Group's custom config automatically:
-            scraper = CompanyScraper("Man Group")
+            # Uses Google's custom config automatically:
+            scraper = CompanyScraper("google")
             
             # Custom URL override:
             scraper = CompanyScraper(
