@@ -1,18 +1,15 @@
-# Web Scraping
 requests==2.31.0 # HTTP requests to fetch web pages
 beautifulsoup4==4.12.2 # Parse HTML and extract data
 urllib3==2.1.0 # URL handling and robots.txt checking
 
-# Database
 flask==3.0.0 # Framework for APIs
 flask-sqlalchemy==3.1.1 # Database ORM
+flask-cors==4.0.0 # Cross-origin request support (required for frontend)
 psycopg2-binary==2.9.9 # PostgreSQL adapter
 flask-migrate==4.0.5 # Database migrations
 
-# NLP
-spacy==3.7.2 # NLP library for text processing
-nltk==3.8.1
+# spacy==3.7.2 
+# nltk==3.8.1
 
-# Utilities
 python-dotenv==1.0.0 # Environment variables
 schedule==1.2.0 # Job scheduling for weekly runs

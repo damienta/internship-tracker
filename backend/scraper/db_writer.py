@@ -88,10 +88,7 @@ def _parse_datetime(value) -> datetime | None:
     return None
 
 
-# ---------------------------------------------------------------------------
 # Main save function
-# ---------------------------------------------------------------------------
-
 def save_jobs(jobs: List[Dict]) -> Dict[str, int]:
     """
     Persist a list of job dicts to the database.
@@ -132,7 +129,6 @@ def save_jobs(jobs: List[Dict]) -> Dict[str, int]:
                 deadline       = _parse_date(job.get("deadline")),
                 scraped_at     = _parse_datetime(job.get("scraped_at")) or datetime.utcnow(),
                 salary_range   = (job.get('salary_range') or "")[:100] or None,
-                # Requirements populated later by NLP pipeline
                 requirements   = None,
                 extracted_skills = None,
                 is_active      = True,
