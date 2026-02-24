@@ -265,7 +265,15 @@ class LeverScraper:
                 from bs4 import BeautifulSoup
                 raw = job.get("description") or job.get("descriptionBody") or ""
                 description = BeautifulSoup(html_module.unescape(raw), "html.parser").get_text(" ", strip=True)
-            description = description[:1000]
+            # Append structured list sections (e.g. "Technologies We Use", "Requirements")
+            # These are stored separately in the Lever API response
+            for lst in job.get("lists", []):
+                heading = lst.get("text", "")
+                items = lst.get("content", "")
+                if heading or items:
+                    from bs4 import BeautifulSoup as _BS
+                    items_text = _BS(items, "html.parser").get_text(" ", strip=True) if items else ""
+                    description += f" {heading}: {items_text}"
 
             created_at = job.get("createdAt") # When job posting was created (recorded in ms since epoch)
 

@@ -85,6 +85,12 @@ class BaseScraper:
             'industrial placement', 'sandwich placement',
             'year in industry', 'sandwich year', 'industrial year',
         ]
+
+        self.uk_location_keywords = [
+            'london', 'united kingdom', 'england', 'uk', 'remote',
+            'britain', 'manchester', 'birmingham', 'edinburgh',
+            'glasgow', 'bristol', 'leeds', 'reading', 'cambridge',
+        ]
         
         logger.info(f"Initialized scraper for {company_name}")
     
@@ -559,6 +565,11 @@ class BaseScraper:
             job_data = self.extract_job_data(card) # Extracts title, location, url etc. from the job card
             
             if job_data and self.is_relevant_role(job_data['title'], job_data['description']):
+                # Skip non-UK roles when location is populated and clearly not UK
+                location = (job_data.get('location') or '').lower()
+                if location and not any(kw in location for kw in self.uk_location_keywords):
+                    logger.debug(f"Skipping non-UK role: {job_data['title']} ({job_data['location']})")
+                    continue
                 # This is a relevant intern/graduate role - fetch full details
                 job_url = job_data.get('url')
                 # Checks if anything is missing

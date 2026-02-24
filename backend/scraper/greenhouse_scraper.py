@@ -18,6 +18,7 @@ Usage:
 """
 
 import logging
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import List, Dict, Optional
@@ -191,27 +192,30 @@ class GreenhouseScraper:
 
     # Filtering helpers
     def _is_relevant_title(self, title: str) -> bool:
-        """Return True if the job title indicates an intern/grad/placement role."""
+        """Return True if the job title indicates an intern/grad/placement role.
+        Uses word boundaries so 'intern' does not match 'internal' or 'international'.
+        """
         t = title.lower()
-        return any(kw in t for kw in ROLE_KEYWORDS)
+        return any(re.search(r'\b' + re.escape(kw) + r'\b', t) for kw in ROLE_KEYWORDS)
 
     def _is_uk_location(self, location_name: str) -> bool:
         """Return True if location string refers to a UK location."""
         loc = location_name.lower()
         return any(kw in loc for kw in UK_LOCATION_KEYWORDS)
 
-    def _clean_description(self, html_content: str, max_chars: int = 500) -> str:
+    def _clean_description(self, html_content: str) -> str:
         """Strip HTML tags from the Greenhouse job description.
 
         Greenhouse returns the content field as HTML-escaped text
         (e.g converts &lt;div\&gt to <div>), unescape first, then strip the tags.
+        Full text is kept so skills extraction can scan the whole description.
         """
         if not html_content:
             return ""
         import html as html_module
         unescaped = html_module.unescape(html_content)
         text = BeautifulSoup(unescaped, "html.parser").get_text(separator=" ", strip=True)
-        return text[:max_chars]
+        return text
 
     # Per-company scrape
     def scrape_company(self, slug: str, company_name: str) -> List[Dict]:

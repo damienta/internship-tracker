@@ -129,6 +129,7 @@ class CompanyScraper(BaseScraper):
             'date_posted': None,
             'deadline': None,
             'start_date': None,
+            'source_website': self.company_name.lower(),
             'scraped_at': datetime.utcnow().isoformat()
         }
         

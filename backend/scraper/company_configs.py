@@ -40,8 +40,9 @@ COMPANY_CONFIGS = {
 
     # HSBC
     # HTML-rendered via Avature ATS pipelineOffset pagination
+    # URL filters for UK intern/grad roles
     'HSBC': {
-        'careers_url': 'https://mycareer.hsbc.com/en_GB/external/SearchJobs/?pipelineRecordsPerPage=10&pipelineOffset=0',
+        'careers_url': 'https://mycareer.hsbc.com/en_GB/external/SearchJobs/?keyword=intern+graduate+placement&pipelineRecordsPerPage=10&pipelineOffset=0',
         'job_card_selector': 'article.article--result',
         'title_selector': 'h3.article__header__text__title a',
         'location_selector': 'span.location',
@@ -63,12 +64,12 @@ COMPANY_CONFIGS = {
     # Template for adding more companies:
     # 'Company Name': {
     #     'careers_url': 'https://company.com/careers',
-    #     'job_card_selector': 'div.job-card',  # CSS selector for job container
-    #     'title_selector': 'h2.title',         # CSS selector for job title
-    #     'location_selector': 'span.location', # CSS selector for location
-    #     'link_selector': 'a.apply-link',      # Optional: specific link selector
-    #     'description_selector': 'div.desc',   # Optional: description selector
-    #     'date_selector': 'time.posted',       # Optional: date posted selector
+    #     'job_card_selector': 'div.job-card',
+    #     'title_selector': 'h2.title',
+    #     'location_selector': 'span.location',
+    #     'link_selector': 'a.apply-link',
+    #     'description_selector': 'div.desc',
+    #     'date_selector': 'time.posted',
     #     'notes': 'Any special notes about this company'
     # },
 }

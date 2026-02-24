@@ -17,10 +17,11 @@ import logging
 import time
 from datetime import datetime
 
+import requests
 import schedule
 
 from app import create_app
-from models import db
+from models import db, Internship
 from scraper.company_scraper import CompanyScraper
 from scraper.greenhouse_scraper import GreenhouseScraper
 from scraper.lever_scraper import LeverScraper
@@ -86,6 +87,9 @@ def run_all_scrapers():
     except Exception as e:
         logger.error(f"[Lever] scraper failed: {e}")
 
+    # Check whether active jobs are still live; mark expired ones inactive
+    check_job_expiry()
+
     # Summary
     elapsed = (datetime.now() - start).seconds
     logger.info("=" * 60)
@@ -94,6 +98,30 @@ def run_all_scrapers():
         f"saved={total_saved}, skipped={total_skipped}, errors={total_errors}"
     )
     logger.info("=" * 60)
+
+
+def check_job_expiry():
+    """
+    Re-request the URL of every active job.
+    Mark is_active=False if the listing returns a 404 (removed).
+
+    5xx errors and connection timeouts are ignored (server issues, not removal).
+    """
+    logger.info("[Expiry] Checking active job URLs ...")
+    jobs = Internship.query.filter_by(is_active=True).all()
+    expired = 0
+    for job in jobs:
+        try:
+            resp = requests.head(job.url, timeout=10, allow_redirects=True)
+            if resp.status_code == 404:
+                job.is_active = False
+                expired += 1
+                logger.debug(f"[Expiry] Marked inactive (404): {job.company} - {job.title}")
+        except requests.RequestException:
+            # Network error / timeout — skip, don't expire
+            pass
+    db.session.commit()
+    logger.info(f"[Expiry] Marked {expired}/{len(jobs)} active jobs as inactive")
 
 
 def main():
