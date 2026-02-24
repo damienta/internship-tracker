@@ -26,7 +26,6 @@ class Internship(db.Model):
     
     # JOB DETAILS
     description = db.Column(db.Text) # Full job description (can be very long, hence 'Text' type)
-    requirements = db.Column(db.Text) # Required qualifications (e.g "Currently pursuing CS degree")
     salary_range = db.Column(db.String(100)) # Example: "£25,000 - £35,000" or "Competitive"
     
     # DATES
@@ -60,7 +59,6 @@ class Internship(db.Model):
             'company': self.company,
             'location': self.location,
             'description': self.description,
-            'requirements': self.requirements,
             'salary_range': self.salary_range,
             'date_posted': self.date_posted.isoformat() if self.date_posted else None,
             'deadline': self.deadline.isoformat() if self.deadline else None,

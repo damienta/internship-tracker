@@ -9,6 +9,7 @@ Endpoints:
     GET /api/stats          - summary counts by source, company, role type
     GET /api/companies      - distinct list of companies in the database
     GET /api/sources        - distinct list of sources in the database
+    GET /api/skills         - full list of recognised skill keywords
 
 Query parameters for GET /api/jobs:
     company   - filter by company name (partial, case-insensitive)
@@ -17,6 +18,7 @@ Query parameters for GET /api/jobs:
     keyword   - filter by job title keyword (partial, case-insensitive)
     role_type - filter by role type inferred from title:
                   intern / internship / graduate / grad / placement / apprentice
+    skills    - filter by a skill stored in extracted_skills, e.g. ?skills=python
     page      - page number (default 1)
     per_page  - results per page (default 20, max 100)
 """
@@ -26,6 +28,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from sqlalchemy import func
 from models import db, Internship
+from scraper.skills import SKILLS
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -103,6 +106,12 @@ def create_app(db_url: str = None) -> Flask:
             query = query.filter(
                 or_(*[Internship.title.ilike(f"%{kw}%") for kw in kws])
             )
+
+        # skills filter: match a specific skill stored in extracted_skills JSON array
+        # e.g. ?skills=python  →  jobs where extracted_skills contains "python"
+        skills_param = request.args.get("skills", "").strip().lower()
+        if skills_param:
+            query = query.filter(Internship.extracted_skills.contains([skills_param]))
 
         # --- Pagination ---
         try:
@@ -188,6 +197,13 @@ def create_app(db_url: str = None) -> Flask:
             .all()
         )
         return jsonify([r[0] for r in rows])
+
+    # GET /api/skills
+    @app.route("/api/skills", methods=["GET"])
+    def get_skills():
+        """Return the full list of recognised skill keywords (for frontend autocomplete)."""
+        return jsonify(sorted(SKILLS))
+
     return app
 
 

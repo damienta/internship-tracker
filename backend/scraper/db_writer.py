@@ -13,13 +13,12 @@ from datetime import datetime, date
 from typing import List, Dict
 
 from models import db, Internship
+from scraper.skills import extract_skills
 
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
 # Date parsing
-# ---------------------------------------------------------------------------
 
 DATE_FORMATS = [
     "%Y-%m-%dT%H:%M:%S.%fZ", # 2024-09-01T12:00:00.000Z  (Greenhouse/Lever ISO)
@@ -129,9 +128,9 @@ def save_jobs(jobs: List[Dict]) -> Dict[str, int]:
                 deadline       = _parse_date(job.get("deadline")),
                 scraped_at     = _parse_datetime(job.get("scraped_at")) or datetime.utcnow(),
                 salary_range   = (job.get('salary_range') or "")[:100] or None,
-                requirements   = None,
-                extracted_skills = None,
-                is_active      = True,
+
+                extracted_skills = extract_skills(job.get("description")),
+                is_active        = True,
             )
 
             db.session.add(internship)

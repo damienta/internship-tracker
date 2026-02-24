@@ -1,34 +1,56 @@
 """
-Test the BT Group careers scraper.
-Run: python -m scraper.tests.test_bt
+Quick test for BT Group careers scraper
 """
-import sys
-import time
-import logging
-
-sys.stdout.reconfigure(encoding="utf-8")
-logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
 
 from scraper.company_scraper import CompanyScraper
 
-print("=" * 60)
+print("\n" + "="*60)
 print("TESTING BT GROUP SCRAPER")
-print("=" * 60)
+print("="*60 + "\n")
 
-start = time.time()
+# Create scraper
 scraper = CompanyScraper("BT Group")
+
+print(f"Scraping: {scraper.careers_url}\n")
+
+# Run scraper
 jobs = scraper.scrape()
-elapsed = time.time() - start
 
-print(f"\nTotal relevant UK roles found: {len(jobs)}")
-print(f"Time taken: {elapsed:.1f}s")
-print("=" * 60)
+# Display results
+print("\n" + "-"*60)
+print("RESULTS")
+print("-"*60 + "\n")
 
-for i, job in enumerate(jobs, 1):
-    print(f"\n[{i}] {job['title']}")
-    print(f"  Location:  {job['location']}")
-    print(f"  Posted:    {job.get('date_posted', 'N/A')}")
-    print(f"  Deadline:  {job.get('deadline', 'N/A')}")
-    print(f"  URL:       {job['url']}")
-    if job.get('description'):
-        print(f"  Desc:      {job['description'][:120]}...")
+if jobs:
+    print(f"Found {len(jobs)} relevant internship/graduate roles:\n")
+    
+    for i, job in enumerate(jobs[:10], 1):
+        print(f"{i}. {job['title']}")
+        print(f"Location: {job['location']}")
+        if job.get('description'):
+            desc = job['description'][:150] + "..." if len(job.get('description', '')) > 150 else job.get('description', 'N/A')
+            print(f"Description: {desc}")
+        if job.get('date_posted'):
+            print(f"Posted: {job['date_posted']}")
+        else:
+            print(f"Posted: Not specified")
+        if job.get('deadline'):
+            print(f"Deadline: {job['deadline']}")
+        else:
+            print(f"Deadline: Not specified")
+        if job.get('start_date'):
+            print(f"Start Date: {job['start_date']}")
+        else:
+            print(f"Start Date: Not specified")
+        print(f"URL: {job['url']}")
+        print()
+    
+    if len(jobs) > 10:
+        print(f"... and {len(jobs) - 10} more roles")
+else:
+    print("No relevant internship/graduate jobs found")
+    print("\nThis could mean:")
+    print("1. No current openings matching keywords (intern, graduate)")
+    print("2. Selectors need updating")
+
+print("\n" + "="*60)
