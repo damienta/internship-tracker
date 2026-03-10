@@ -209,7 +209,6 @@ class LeverScraper:
             "User-Agent": "Mozilla/5.0 (compatible; InternshipTracker/1.0)",
             "Accept": "application/json",
         })
-        # Size the connection pool to match concurrent workers to avoid pool-full warnings
         adapter = requests.adapters.HTTPAdapter(pool_connections=workers, pool_maxsize=workers)
         self.session.mount("https://", adapter)
         self.session.mount("http://", adapter)
@@ -264,12 +263,12 @@ class LeverScraper:
                 import html as html_module
                 from bs4 import BeautifulSoup
                 raw = job.get("description") or job.get("descriptionBody") or ""
-                description = BeautifulSoup(html_module.unescape(raw), "html.parser").get_text(" ", strip=True)
+                description = BeautifulSoup(html_module.unescape(raw), "html.parser").get_text(" ", strip=True) # strip=True removes all whitespace
             # Append structured list sections (e.g. "Technologies We Use", "Requirements")
             # These are stored separately in the Lever API response
-            for lst in job.get("lists", []):
-                heading = lst.get("text", "")
-                items = lst.get("content", "")
+            for lst in job.get("lists", []): # List of extra fields
+                heading = lst.get("text", "") # Grabs header of field (e.g. "Technologies We Use")
+                items = lst.get("content", "") # Grabs content of that field
                 if heading or items:
                     from bs4 import BeautifulSoup as _BS
                     items_text = _BS(items, "html.parser").get_text(" ", strip=True) if items else ""

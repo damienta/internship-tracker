@@ -113,7 +113,6 @@ def create_app(db_url: str = None) -> Flask:
         if skills_param:
             query = query.filter(Internship.extracted_skills.contains([skills_param]))
 
-        # --- Pagination ---
         try:
             page     = max(1, int(request.args.get("page", 1)))
             per_page = min(100, max(1, int(request.args.get("per_page", 20))))
@@ -185,24 +184,6 @@ def create_app(db_url: str = None) -> Flask:
             .all()
         )
         return jsonify([r[0] for r in rows])
-
-    # GET /api/sources
-    @app.route("/api/sources", methods=["GET"])
-    def get_sources():
-        """Return a list of all distinct source websites in the database."""
-        rows = (
-            db.session.query(Internship.source_website)
-            .distinct()
-            .order_by(Internship.source_website)
-            .all()
-        )
-        return jsonify([r[0] for r in rows])
-
-    # GET /api/skills
-    @app.route("/api/skills", methods=["GET"])
-    def get_skills():
-        """Return the full list of recognised skill keywords (for frontend autocomplete)."""
-        return jsonify(sorted(SKILLS))
 
     return app
 
