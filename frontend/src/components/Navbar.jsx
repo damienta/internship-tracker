@@ -1,6 +1,15 @@
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 export default function Navbar() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
+
   return (
     // Placeholder logo
     <nav className="bg-white border-b border-gray-200 sticky top-0">
@@ -18,7 +27,12 @@ export default function Navbar() {
           <NavLink to="/about" className={({ isActive }) => isActive ? 'text-blue-600 text-sm' : 'text-gray-500 text-sm'}>About</NavLink>
         </div>
 
-        <span className="text-gray-400 text-sm">Account</span>
+        <div className="flex items-center gap-3">
+          <span className="text-gray-500 text-sm">{user?.username}</span>
+          <button onClick={handleLogout} className="text-sm text-red-500 hover:text-red-700">
+            Log out
+          </button>
+        </div>
 
       </div>
     </nav>

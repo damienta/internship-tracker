@@ -1,9 +1,24 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import Layout from './components/Layout'
 import Home from './pages/Home'
 import Opportunities from './pages/Opportunities'
 import Tracker from './pages/Tracker'
 import About from './pages/About'
+import Login from './pages/Login'
+import Register from './pages/Register'
+
+// Wraps a route so unauthenticated users are sent to /login
+function PrivateRoute({ children }) {
+  const { user } = useAuth()
+  return user ? children : <Navigate to="/login" replace />
+}
+
+// Redirects already-logged-in users away from /login and /register
+function GuestRoute({ children }) {
+  const { user } = useAuth()
+  return user ? <Navigate to="/" replace /> : children
+}
 
 function NotFound() {
   return (
@@ -15,15 +30,22 @@ function NotFound() {
 
 function App() {
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/opportunities" element={<Opportunities />} />
-        <Route path="/tracker" element={<Tracker />} />
-        <Route path="/about" element={<About />} />
-        <Route path="*" element={<NotFound />} />
-      </Route>
-    </Routes>
+    <AuthProvider>
+      <Routes>
+        {/* Guest-only routes */}
+        <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+        <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+
+        {/* Protected routes (requires login) */}
+        <Route element={<Layout />}>
+          <Route path="/" element={<PrivateRoute><Home /></PrivateRoute>} />
+          <Route path="/opportunities" element={<PrivateRoute><Opportunities /></PrivateRoute>} />
+          <Route path="/tracker" element={<PrivateRoute><Tracker /></PrivateRoute>} />
+          <Route path="/about" element={<PrivateRoute><About /></PrivateRoute>} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </AuthProvider>
   )
 }
 
