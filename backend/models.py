@@ -1,14 +1,34 @@
 """
 models - SQLAlchemy database models.
 
-Defines the Internship table that stores all scraped job listings.
-The url column is UNIQUE to prevent duplicate entries.
+Tables:
+  - Internship:   all scraped job listings (url is UNIQUE)
+  - User:         registered accounts (username + hashed password)
 """
 
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
 db = SQLAlchemy()
+
+
+class User(db.Model):
+    """Stores registered user accounts."""
+    __tablename__ = 'users'
+
+    id            = db.Column(db.Integer, primary_key=True)
+    username      = db.Column(db.String(80), unique=True, nullable=False)
+    email         = db.Column(db.String(200), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)  # bcrypt hash, never plain text
+    created_at    = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        """Safe public representation — never include password_hash."""
+        return {
+            'id':       self.id,
+            'username': self.username,
+            'email':    self.email,
+        }
 
 class Internship(db.Model):
     """

@@ -10,6 +10,8 @@ Endpoints:
     GET /api/companies      - distinct list of companies in the database
     GET /api/sources        - distinct list of sources in the database
     GET /api/skills         - full list of recognised skill keywords
+    POST /api/auth/register - create a new user account
+    POST /api/auth/login    - log in and receive a JWT token
 
 Query parameters for GET /api/jobs:
     company   - filter by company name (partial, case-insensitive)
@@ -24,10 +26,12 @@ Query parameters for GET /api/jobs:
 """
 
 import os
+import bcrypt
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager, create_access_token
 from sqlalchemy import func
-from models import db, Internship
+from models import db, Internship, User
 from scraper.skills import SKILLS
 from dotenv import load_dotenv
 
@@ -64,8 +68,10 @@ def create_app(db_url: str = None) -> Flask:
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["SQLALCHEMY_ECHO"] = os.getenv("SQLALCHEMY_ECHO", "False") == "True"
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 
     db.init_app(app)
+    JWTManager(app)
 
     with app.app_context():
         db.create_all()
@@ -184,6 +190,73 @@ def create_app(db_url: str = None) -> Flask:
             .all()
         )
         return jsonify([r[0] for r in rows])
+    
+    # GET /api/auth/register
+    @app.route("/api/auth/register", methods=["POST"])
+    def register():
+        """
+        Create a new user account.
+
+        Request body (JSON):
+            username  - unique display name
+            email     - unique email address
+            password  - plain-text password (hashed before storage)
+
+        Returns 201 with the new user object and a JWT token on success.
+        Returns 400 if any field is missing or the username/email already exists.
+        """
+        data = request.get_json(silent=True) or {}
+        username = data.get("username", "").strip()
+        email = data.get("email", "").strip().lower()
+        password = data.get("password", "")
+
+        if not username or not email or not password:
+            return jsonify({"error": "username, email and password are required"}), 400
+
+        if len(password) < 8:
+            return jsonify({"error": "Password must be at least 8 characters"}), 400
+
+        if User.query.filter_by(username=username).first():
+            return jsonify({"error": "Username already taken"}), 400
+
+        if User.query.filter_by(email=email).first():
+            return jsonify({"error": "Email already registered"}), 400
+
+        # Hash the password — bcrypt generates a random salt automatically
+        password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+        user = User(username=username, email=email, password_hash=password_hash)
+        db.session.add(user)
+        db.session.commit()
+
+        token = create_access_token(identity=str(user.id))
+        return jsonify({"user": user.to_dict(), "token": token}), 201
+
+    # POST /api/auth/login
+    @app.route("/api/auth/login", methods=["POST"])
+    def login():
+        """
+        Log in with username and password.
+
+        Request body (JSON):
+            username  - registered username
+            password  - plain-text password
+
+        Returns 200 with the user object and a JWT token on success.
+        Returns 401 for invalid credentials (deliberately vague to prevent enumeration).
+        """
+        data = request.get_json(silent=True) or {}
+        username = data.get("username", "").strip()
+        password = data.get("password", "")
+
+        user = User.query.filter_by(username=username).first()
+
+        # Check user exists and password matches the stored hash
+        if not user or not bcrypt.checkpw(password.encode(), user.password_hash.encode()):
+            return jsonify({"error": "Invalid username or password"}), 401
+
+        token = create_access_token(identity=str(user.id))
+        return jsonify({"user": user.to_dict(), "token": token}), 200
 
     return app
 

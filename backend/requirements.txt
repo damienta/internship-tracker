@@ -5,11 +5,10 @@ urllib3==2.1.0 # URL handling and robots.txt checking
 flask==3.0.0 # Framework for APIs
 flask-sqlalchemy==3.1.1 # Database ORM
 flask-cors==4.0.0 # Cross-origin request support (required for frontend)
+flask-jwt-extended==4.6.0 # JWT token creation and verification
 psycopg2-binary==2.9.9 # PostgreSQL adapter
 flask-migrate==4.0.5 # Database migrations
-
-# spacy==3.7.2 
-# nltk==3.8.1
+bcrypt==4.1.2 # Password hashing
 
 python-dotenv==1.0.0 # Environment variables
 schedule==1.2.0 # Job scheduling for weekly runs
