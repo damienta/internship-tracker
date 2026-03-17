@@ -493,8 +493,12 @@ class BaseScraper:
             for selector in desc_selectors:
                 elem = soup.select_one(selector)
                 if elem:
-                    description = elem.get_text(strip=True)[:1000]  # First 1000 chars
+                    description = elem.get_text(" ", strip=True)[:12000]
                     break
+
+            # Fallback: use page text if no structured description element exists.
+            if not description:
+                description = soup.get_text(" ", strip=True)[:12000]
             
             return {
                 'date_posted': date_posted,
@@ -573,7 +577,13 @@ class BaseScraper:
                 # This is a relevant intern/graduate role - fetch full details
                 job_url = job_data.get('url')
                 # Checks if anything is missing
-                if job_url and (not job_data.get('date_posted') or not job_data.get('deadline') or not job_data.get('start_date') or not job_data['description']):
+                if job_url and (
+                    not job_data.get('date_posted')
+                    or not job_data.get('deadline')
+                    or not job_data.get('start_date')
+                    or not job_data['description']
+                    or len((job_data.get('description') or '').strip()) < 500
+                ):
                     logger.info(f"Fetching details for: {job_data['title']}")
                     detail_data = self.fetch_job_details(job_url) # Visit the individual job page to get more info like date posted, deadline, full description
                     if detail_data:

@@ -30,6 +30,13 @@ function getErrorMessage(error) {
   return error.response?.data?.error || 'Something went wrong while loading opportunities.'
 }
 
+function formatDate(value) {
+  if (!value) return null
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return null
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
 function JobCard({ job }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-2">
@@ -55,6 +62,8 @@ function JobCard({ job }) {
           </span>
         )}
         {job.source_website && <span className="bg-gray-100 px-2 py-0.5 rounded">{SOURCE_LABELS[job.source_website] ?? job.source_website}</span>}
+        {formatDate(job.date_posted) && <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded">Opened {formatDate(job.date_posted)}</span>}
+        {formatDate(job.deadline) && <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded">Deadline {formatDate(job.deadline)}</span>}
       </div>
       {job.extracted_skills?.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-1">
@@ -73,8 +82,8 @@ export default function Opportunities() {
   const [loading, setLoading] = useState(true)
   const [isFetching, setIsFetching] = useState(false)
   const [error, setError] = useState('')
-  const [filters, setFilters] = useState({ keyword: '', company: '', location: '', role_type: '' })
-  const [draftFilters, setDraftFilters] = useState({ keyword: '', company: '', location: '', role_type: '' })
+  const [filters, setFilters] = useState({ keyword: '', company: '', location: '', role_type: '', sort: '' })
+  const [draftFilters, setDraftFilters] = useState({ keyword: '', company: '', location: '', role_type: '', sort: '' })
   const [page, setPage] = useState(1)
 
   useEffect(() => {
@@ -110,7 +119,7 @@ export default function Opportunities() {
   }
 
   const clearFilters = () => {
-    const emptyFilters = { keyword: '', company: '', location: '', role_type: '' }
+    const emptyFilters = { keyword: '', company: '', location: '', role_type: '', sort: '' }
     setDraftFilters(emptyFilters)
     setFilters(emptyFilters)
     setPage(1)
@@ -148,6 +157,11 @@ export default function Opportunities() {
           <option value="graduate">Graduate</option>
           <option value="junior">Junior</option>
           <option value="placement">Placement</option>
+        </select>
+        <select className={inputClass} name="sort" value={draftFilters.sort} onChange={handleFilter}>
+          <option value="">Sort by</option>
+          <option value="recent">Recently Opened</option>
+          <option value="deadline">Closing Deadline</option>
         </select>
         <button
           type="button"

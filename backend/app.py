@@ -21,6 +21,7 @@ Query parameters for GET /api/jobs:
     role_type - filter by role type inferred from title:
                   intern / internship / graduate / grad / junior / placement / apprentice
     skills    - filter by a skill stored in extracted_skills, e.g. ?skills=python
+    sort      - sorting mode: scraped (default), recent, or deadline
     page      - page number (default 1)
     per_page  - results per page (default 20, max 100)
 """
@@ -120,16 +121,35 @@ def create_app(db_url: str = None) -> Flask:
         if skills_param:
             query = query.filter(Internship.extracted_skills.contains([skills_param]))
 
+        sort = request.args.get("sort", "scraped").strip().lower()
+
         try:
             page     = max(1, int(request.args.get("page", 1)))
             per_page = min(100, max(1, int(request.args.get("per_page", 20))))
         except (ValueError, TypeError):
             page, per_page = 1, 20
 
+        if sort == "deadline":
+            # Closest deadline first.
+            query = query.order_by(
+                Internship.deadline.is_(None),
+                Internship.deadline.asc(),
+                Internship.scraped_at.desc(),
+            )
+        elif sort in {"recent", "opened"}:
+            # Most recently opened first (date_posted), then newest scrape as tie-breaker.
+            query = query.order_by(
+                Internship.date_posted.is_(None),
+                Internship.date_posted.desc(),
+                Internship.scraped_at.desc(),
+            )
+        else:
+            # Original default behavior: newest scraped first.
+            query = query.order_by(Internship.scraped_at.desc())
+
         total = query.count()
         internships = (
             query
-            .order_by(Internship.scraped_at.desc())
             .offset((page - 1) * per_page)
             .limit(per_page)
             .all()

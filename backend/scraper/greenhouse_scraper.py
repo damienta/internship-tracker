@@ -150,7 +150,17 @@ GREENHOUSE_COMPANIES: List[tuple] = [
 ]
 
 # Keywords that identify relevant roles (checked against title, case-insensitive)
-ROLE_KEYWORDS = ["intern", "internship", "graduate", "grad", "junior", "placement"]
+ROLE_KEYWORDS = [
+    "intern",
+    "internship",
+    "graduate",
+    "grad",
+    "junior",
+    "placement",
+    "industrial placement",
+    "sandwich year",
+    "year in industry",
+]
 
 # Location strings that confirm UK role (checked against location name)
 UK_LOCATION_KEYWORDS = [
