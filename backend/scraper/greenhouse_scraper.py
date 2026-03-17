@@ -150,16 +150,32 @@ GREENHOUSE_COMPANIES: List[tuple] = [
 ]
 
 # Keywords that identify relevant roles (checked against title, case-insensitive)
-ROLE_KEYWORDS = ["intern", "internship", "graduate", "grad", "placement"]
+ROLE_KEYWORDS = ["intern", "internship", "graduate", "grad", "junior", "placement"]
 
 # Location strings that confirm UK role (checked against location name)
-UK_LOCATION_KEYWORDS = ["london", "united kingdom", "england", "uk", "remote"]
+UK_LOCATION_KEYWORDS = [
+    "united kingdom",
+    "uk",
+    "england",
+    "scotland",
+    "wales",
+    "northern ireland",
+    "great britain",
+    "gb",
+    "london",
+    "manchester",
+    "edinburgh",
+    "bristol",
+    "birmingham",
+    "glasgow",
+    "leeds",
+    "cambridge",
+    "reading",
+]
 
 
 class GreenhouseScraper:
-    """
-    Scrapes multiple companies via the public Greenhouse jobs board API retrieving JSON.
-    """
+    """Scrapes multiple companies via the public Greenhouse jobs board API retrieving JSON."""
 
     BASE_URL = "https://boards-api.greenhouse.io/v1/boards/{slug}/jobs"
 
@@ -192,7 +208,8 @@ class GreenhouseScraper:
 
     # Filtering helpers
     def _is_relevant_title(self, title: str) -> bool:
-        """Return True if the job title indicates an intern/grad/placement role.
+        """
+        Return True if the job title indicates an intern/grad/placement role.
         Uses word boundaries so 'intern' does not match 'internal' or 'international'.
         """
         t = title.lower()
@@ -204,7 +221,8 @@ class GreenhouseScraper:
         return any(kw in loc for kw in UK_LOCATION_KEYWORDS)
 
     def _clean_description(self, html_content: str) -> str:
-        """Strip HTML tags from the Greenhouse job description.
+        """
+        Strip HTML tags from the Greenhouse job description.
 
         Greenhouse returns the content field as HTML-escaped text
         (e.g converts &lt;div\&gt to <div>), unescape first, then strip the tags.

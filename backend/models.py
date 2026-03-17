@@ -31,9 +31,7 @@ class User(db.Model):
         }
 
 class Internship(db.Model):
-    """
-    Database model for storing internship listings.
-    """
+    """Database model for storing internship listings."""
     __tablename__ = 'internships'
     # PRIMARY KEY: Unique identifier for each internship
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

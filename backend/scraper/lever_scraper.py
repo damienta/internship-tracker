@@ -177,10 +177,28 @@ LEVER_COMPANIES = [
 ]
 
 # Role keywords - checked against job title (case-insensitive)
-ROLE_KEYWORDS = ["intern", "internship", "graduate", "grad", "placement", "apprentice"]
+ROLE_KEYWORDS = ["intern", "internship", "graduate", "grad", "junior", "placement", "apprentice"]
 
 # UK location keywords - checked against location field
-UK_LOCATION_KEYWORDS = ["london", "united kingdom", "england", "uk", "remote", "manchester", "edinburgh", "bristol"]
+UK_LOCATION_KEYWORDS = [
+    "united kingdom",
+    "uk",
+    "england",
+    "scotland",
+    "wales",
+    "northern ireland",
+    "great britain",
+    "gb",
+    "london",
+    "manchester",
+    "edinburgh",
+    "bristol",
+    "birmingham",
+    "glasgow",
+    "leeds",
+    "cambridge",
+    "reading",
+]
 
 
 class LeverScraper:

@@ -1,6 +1,4 @@
-"""
-Quick test for BT Group careers scraper
-"""
+"""Quick test for BT Group careers scraper"""
 
 from scraper.company_scraper import CompanyScraper
 

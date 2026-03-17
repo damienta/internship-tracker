@@ -8,6 +8,7 @@ const inputClass = 'border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ou
 const SOURCE_LABELS = {
   lever:      'Lever',
   greenhouse: 'Greenhouse',
+  ashby:      'Ashby',
   bt:         'BT',
   hsbc:       'HSBC',
   sap:        'SAP',
@@ -145,6 +146,7 @@ export default function Opportunities() {
           <option value="">All role types</option>
           <option value="intern">Internship</option>
           <option value="graduate">Graduate</option>
+          <option value="junior">Junior</option>
           <option value="placement">Placement</option>
         </select>
         <button

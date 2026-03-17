@@ -80,7 +80,7 @@ class BaseScraper:
         # Keywords to identify internships and graduate roles
         self.target_keywords = [
             'intern', 'internship', 'placement',
-            'graduate', 'grad role', 'new grad', 'graduate scheme',
+            'graduate', 'grad role', 'new grad', 'graduate scheme', 'junior',
             'grad scheme', 'early career', 'entry level', 'grad',
             'industrial placement', 'sandwich placement',
             'year in industry', 'sandwich year', 'industrial year',

@@ -42,7 +42,7 @@ COMPANY_CONFIGS = {
     # HTML-rendered via Avature ATS pipelineOffset pagination
     # URL filters for UK intern/grad roles
     'HSBC': {
-        'careers_url': 'https://mycareer.hsbc.com/en_GB/external/SearchJobs/?keyword=intern+graduate+placement&pipelineRecordsPerPage=10&pipelineOffset=0',
+        'careers_url': 'https://mycareer.hsbc.com/en_GB/external/SearchJobs/?keyword=intern+graduate+junior+placement&pipelineRecordsPerPage=10&pipelineOffset=0',
         'job_card_selector': 'article.article--result',
         'title_selector': 'h3.article__header__text__title a',
         'location_selector': 'span.location',
@@ -53,7 +53,7 @@ COMPANY_CONFIGS = {
     # SAP UK
     # Pagination: startrow=25, startrow=50 etc.
     'SAP': {
-        'careers_url': 'https://jobs.sap.com/search/?q=intern+graduate&locationsearch=UK+United+Kingdom&location=GBR',
+        'careers_url': 'https://jobs.sap.com/search/?q=intern+graduate+junior&locationsearch=UK+United+Kingdom&location=GBR',
         'job_card_selector': 'tr.data-row',
         'title_selector': 'a.jobTitle-link',
         'location_selector': 'span.jobLocation',

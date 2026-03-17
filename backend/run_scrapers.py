@@ -25,6 +25,7 @@ from models import db, Internship
 from scraper.company_scraper import CompanyScraper
 from scraper.greenhouse_scraper import GreenhouseScraper
 from scraper.lever_scraper import LeverScraper
+from scraper.ashby_scraper import AshbyScraper
 from scraper.db_writer import save_jobs
 
 logging.basicConfig(
@@ -86,6 +87,19 @@ def run_all_scrapers():
         total_errors  += stats["errors"]
     except Exception as e:
         logger.error(f"[Lever] scraper failed: {e}")
+
+    # Ashby scraper (embedded JSON in window.__appData)
+    logger.info("[Ashby] Scraping all companies ...")
+    try:
+        ashby = AshbyScraper()
+        jobs = ashby.scrape()
+        logger.info(f"[Ashby] {len(jobs)} roles found")
+        stats = save_jobs(jobs)
+        total_saved   += stats["saved"]
+        total_skipped += stats["skipped"]
+        total_errors  += stats["errors"]
+    except Exception as e:
+        logger.error(f"[Ashby] scraper failed: {e}")
 
     # Check whether active jobs are still live; mark expired ones inactive
     check_job_expiry()

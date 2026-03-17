@@ -15,11 +15,11 @@ Endpoints:
 
 Query parameters for GET /api/jobs:
     company   - filter by company name (partial, case-insensitive)
-    source    - filter by source_website (exact: lever, greenhouse, bt, hsbc, sap)
+    source    - filter by source_website (exact: lever, greenhouse, ashby, bt, hsbc, sap)
     location  - filter by location (partial, case-insensitive)
     keyword   - filter by job title keyword (partial, case-insensitive)
     role_type - filter by role type inferred from title:
-                  intern / internship / graduate / grad / placement / apprentice
+                  intern / internship / graduate / grad / junior / placement / apprentice
     skills    - filter by a skill stored in extracted_skills, e.g. ?skills=python
     page      - page number (default 1)
     per_page  - results per page (default 20, max 100)
@@ -41,6 +41,7 @@ load_dotenv()
 ROLE_TYPE_KEYWORDS = {
     "intern":      ["intern", "internship"],
     "graduate":    ["graduate", "grad"],
+    "junior":      ["junior"],
     "placement":   ["placement", "year in industry", "sandwich", "industrial"],
 }
 
@@ -166,7 +167,7 @@ def create_app(db_url: str = None) -> Flask:
         by_source = {src: count for src, count in source_rows}
 
         # Counts per inferred role type (across active roles only)
-        role_type_counts = {"intern": 0, "graduate": 0, "placement": 0, "apprentice": 0, "other": 0}
+        role_type_counts = {"intern": 0, "graduate": 0, "junior": 0, "placement": 0, "apprentice": 0, "other": 0}
         all_titles = db.session.query(Internship.title).filter_by(is_active=True).all()
         for (title,) in all_titles:
             role_type_counts[title_role_type(title)] += 1
@@ -190,7 +191,7 @@ def create_app(db_url: str = None) -> Flask:
             .all()
         )
         return jsonify([r[0] for r in rows])
-    
+
     # GET /api/auth/register
     @app.route("/api/auth/register", methods=["POST"])
     def register():
