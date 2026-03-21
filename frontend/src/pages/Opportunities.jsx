@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import client from '../api/client'
 import locationIcon from '../assets/location.png'
 
@@ -108,7 +109,9 @@ export default function Opportunities() {
         setJobs(data.results)
         setMeta({ page: data.page, pages: data.pages, total: data.total })
       } catch (err) {
-        setError(getErrorMessage(err))
+        const message = getErrorMessage(err)
+        setError(message)
+        toast.error(`Error: ${message}`)
       } finally {
         setLoading(false)
         setIsFetching(false)
@@ -143,12 +146,6 @@ export default function Opportunities() {
         )}
       </div>
 
-      {error && jobs.length > 0 && (
-        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <p className="text-sm text-amber-800">{error}</p>
-        </div>
-      )}
-
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6 items-center">
         <input className={inputClass} name="keyword" placeholder="Job title keyword" value={draftFilters.keyword} onChange={handleFilter} />
@@ -179,10 +176,7 @@ export default function Opportunities() {
       {loading ? (
         <p className="text-gray-400 text-sm">Loading...</p>
       ) : error && jobs.length === 0 ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-6">
-          <p className="text-sm font-medium text-red-800 mb-2">Could not load opportunities.</p>
-          <p className="text-sm text-red-700">{error}</p>
-        </div>
+        <p className="text-gray-400 text-sm">No listings match your filters right now.</p>
       ) : jobs.length === 0 ? (
         <p className="text-gray-400 text-sm">No listings match your filters.</p>
       ) : (

@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Layout from './components/Layout'
 import Home from './pages/Home'
@@ -31,6 +32,33 @@ function NotFound() {
 function App() {
   return (
     <AuthProvider>
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 3800,
+          style: {
+            fontSize: '15px',
+            padding: '14px 16px',
+            borderRadius: '12px',
+            maxWidth: '520px',
+          },
+          error: {
+            style: {
+              border: '1px solid #fecaca',
+              background: '#fef2f2',
+              color: '#991b1b',
+            },
+          },
+          success: {
+            style: {
+              border: '1px solid #bbf7d0',
+              background: '#f0fdf4',
+              color: '#166534',
+            },
+          },
+        }}
+      />
+
       <Routes>
         {/* Guest-only routes */}
         <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />

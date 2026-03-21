@@ -234,14 +234,33 @@ def create_app(db_url: str = None) -> Flask:
         if not company or not role:
             return jsonify({"error": "company and role are required"}), 400
 
+        link = str(data.get("link", "")).strip()
+        if not link:
+            return jsonify({"error": "link is required"}), 400
+
+        if not (link.startswith("http://") or link.startswith("https://")):
+            return jsonify({"error": "Link must start with http:// or https://."}), 400
+
+        opening_date = parse_iso_date(data.get("opening_date"))
+        closing_date = parse_iso_date(data.get("closing_date"))
+
+        if data.get("opening_date") not in (None, "") and opening_date is None:
+            return jsonify({"error": "Dates must be valid."}), 400
+
+        if data.get("closing_date") not in (None, "") and closing_date is None:
+            return jsonify({"error": "Dates must be valid."}), 400
+
+        if opening_date and closing_date and closing_date < opening_date:
+            return jsonify({"error": "closing_date cannot be earlier than opening_date"}), 400
+
         entry = TrackerEntry(
             user_id=user_id,
             status=status,
             company_name=company,
             role=role,
-            opening_date=parse_iso_date(data.get("opening_date")),
-            closing_date=parse_iso_date(data.get("closing_date")),
-            link=str(data.get("link", "")).strip() or None,
+            opening_date=opening_date,
+            closing_date=closing_date,
+            link=link,
             notes=str(data.get("notes", "")).strip() or None,
         )
 
@@ -293,14 +312,39 @@ def create_app(db_url: str = None) -> Flask:
                 return jsonify({"error": "closing_date must be YYYY-MM-DD"}), 400
             entry.closing_date = parse_iso_date(data.get("closing_date"))
 
+        if entry.opening_date and entry.closing_date and entry.closing_date < entry.opening_date:
+            return jsonify({"error": "closing_date cannot be earlier than opening_date"}), 400
+
         if "link" in data:
-            entry.link = str(data.get("link", "")).strip() or None
+            link = str(data.get("link", "")).strip()
+            if not link:
+                return jsonify({"error": "link is required"}), 400
+            if not (link.startswith("http://") or link.startswith("https://")):
+                return jsonify({"error": "Link must start with http:// or https://."}), 400
+            entry.link = link
 
         if "notes" in data:
             entry.notes = str(data.get("notes", "")).strip() or None
 
         db.session.commit()
         return jsonify(entry.to_dict())
+
+    # DELETE /api/tracker/<id>
+    @app.route("/api/tracker/<int:entry_id>", methods=["DELETE"])
+    def delete_tracker_entry(entry_id: int):
+        """Delete a tracker entry for the requesting user."""
+        entry = db.get_or_404(TrackerEntry, entry_id)
+        user_id = request.args.get("user_id", type=int)
+
+        if not user_id:
+            return jsonify({"error": "user_id is required"}), 400
+
+        if entry.user_id != user_id:
+            return jsonify({"error": "Forbidden"}), 403
+
+        db.session.delete(entry)
+        db.session.commit()
+        return jsonify({"ok": True}), 200
     
     # GET /api/stats
     @app.route("/api/stats", methods=["GET"])

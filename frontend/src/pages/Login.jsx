@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import client from '../api/client'
 
@@ -10,19 +11,10 @@ export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const [form, setForm] = useState({ username: '', password: '' })
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-
-  // Auto-clear error after 3 seconds
-  useEffect(() => {
-    if (!error) return
-    const t = setTimeout(() => setError(''), 3000)
-    return () => clearTimeout(t)
-  }, [error])
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
-    setError('')
   }
 
   const handleSubmit = async (e) => {
@@ -31,9 +23,10 @@ export default function Login() {
     try {
       const { data } = await client.post('/auth/login', form)
       login(data.user, data.token)
+      toast.success('Logged in successfully.')
       navigate('/')
     } catch (err) {
-      setError(err.response?.data?.error || 'Something went wrong')
+      toast.error(`Error: ${err.response?.data?.error || 'Something went wrong'}`)
     } finally {
       setLoading(false)
     }
@@ -52,12 +45,6 @@ export default function Login() {
 
         <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">Welcome back</h1>
         <p className="text-gray-500 text-sm text-center mb-6">Log in to your InternTracker account</p>
-
-        {error && (
-          <p className="text-red-600 text-sm text-center bg-red-50 border border-red-200 rounded-lg py-2 px-3 mb-4">
-            {error}
-          </p>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
