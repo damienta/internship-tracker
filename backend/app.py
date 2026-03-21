@@ -28,11 +28,12 @@ Query parameters for GET /api/jobs:
 
 import os
 import bcrypt
+from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token
 from sqlalchemy import func
-from models import db, Internship, User
+from models import db, Internship, User, TrackerEntry
 from scraper.skills import SKILLS
 from dotenv import load_dotenv
 
@@ -46,6 +47,16 @@ ROLE_TYPE_KEYWORDS = {
     "placement":   ["placement", "year in industry", "sandwich", "industrial"],
 }
 
+TRACKER_STATUSES = {
+    "Applied",
+    "Accepted",
+    "Rejected",
+    "First Interview",
+    "Second Interview",
+    "Phone Screening",
+    "Recruiter Call",
+}
+
 
 def title_role_type(title: str) -> str:
     """Return the role type from a job title, or 'other'."""
@@ -54,6 +65,21 @@ def title_role_type(title: str) -> str:
         if any(kw in t for kw in keywords):
             return rt
     return "other"
+
+
+def parse_iso_date(value):
+    """Parse an ISO date string (YYYY-MM-DD) or return None."""
+    if value is None:
+        return None
+
+    cleaned = str(value).strip()
+    if not cleaned:
+        return None
+
+    try:
+        return datetime.strptime(cleaned, "%Y-%m-%d").date()
+    except ValueError:
+        return None
 
 
 def create_app(db_url: str = None) -> Flask:
@@ -169,6 +195,112 @@ def create_app(db_url: str = None) -> Flask:
         """Return a single job by id."""
         internship = db.get_or_404(Internship, job_id)
         return jsonify(internship.to_dict())
+
+    # GET /api/tracker
+    @app.route("/api/tracker", methods=["GET"])
+    def get_tracker_entries():
+        """Return all tracker entries, newest first."""
+        user_id = request.args.get("user_id", type=int)
+        if not user_id:
+            return jsonify({"error": "user_id is required"}), 400
+
+        entries = (
+            TrackerEntry.query
+            .filter_by(user_id=user_id)
+            .order_by(TrackerEntry.created_at.desc())
+            .all()
+        )
+        return jsonify([entry.to_dict() for entry in entries])
+
+    # POST /api/tracker
+    @app.route("/api/tracker", methods=["POST"])
+    def create_tracker_entry():
+        """Create a tracker entry."""
+        data = request.get_json(silent=True) or {}
+
+        status = str(data.get("status", "Phone Screening")).strip()
+        company = str(data.get("company", "")).strip()
+        role = str(data.get("role", "")).strip()
+        user_id = data.get("user_id")
+
+        try:
+            user_id = int(user_id)
+        except (TypeError, ValueError):
+            return jsonify({"error": "user_id is required"}), 400
+
+        if status not in TRACKER_STATUSES:
+            return jsonify({"error": "Invalid status"}), 400
+
+        if not company or not role:
+            return jsonify({"error": "company and role are required"}), 400
+
+        entry = TrackerEntry(
+            user_id=user_id,
+            status=status,
+            company_name=company,
+            role=role,
+            opening_date=parse_iso_date(data.get("opening_date")),
+            closing_date=parse_iso_date(data.get("closing_date")),
+            link=str(data.get("link", "")).strip() or None,
+            notes=str(data.get("notes", "")).strip() or None,
+        )
+
+        db.session.add(entry)
+        db.session.commit()
+        return jsonify(entry.to_dict()), 201
+
+    # PATCH /api/tracker/<id>
+    @app.route("/api/tracker/<int:entry_id>", methods=["PATCH"])
+    def update_tracker_entry(entry_id: int):
+        """Update editable fields on a tracker entry."""
+        entry = db.get_or_404(TrackerEntry, entry_id)
+        data = request.get_json(silent=True) or {}
+
+        user_id = data.get("user_id")
+        try:
+            user_id = int(user_id)
+        except (TypeError, ValueError):
+            return jsonify({"error": "user_id is required"}), 400
+
+        if entry.user_id != user_id:
+            return jsonify({"error": "Forbidden"}), 403
+
+        if "status" in data:
+            status = str(data.get("status", "")).strip()
+            if status not in TRACKER_STATUSES:
+                return jsonify({"error": "Invalid status"}), 400
+            entry.status = status
+
+        if "company" in data:
+            company = str(data.get("company", "")).strip()
+            if not company:
+                return jsonify({"error": "company cannot be empty"}), 400
+            entry.company_name = company
+
+        if "role" in data:
+            role = str(data.get("role", "")).strip()
+            if not role:
+                return jsonify({"error": "role cannot be empty"}), 400
+            entry.role = role
+
+        if "opening_date" in data:
+            if data.get("opening_date") not in (None, "") and parse_iso_date(data.get("opening_date")) is None:
+                return jsonify({"error": "opening_date must be YYYY-MM-DD"}), 400
+            entry.opening_date = parse_iso_date(data.get("opening_date"))
+
+        if "closing_date" in data:
+            if data.get("closing_date") not in (None, "") and parse_iso_date(data.get("closing_date")) is None:
+                return jsonify({"error": "closing_date must be YYYY-MM-DD"}), 400
+            entry.closing_date = parse_iso_date(data.get("closing_date"))
+
+        if "link" in data:
+            entry.link = str(data.get("link", "")).strip() or None
+
+        if "notes" in data:
+            entry.notes = str(data.get("notes", "")).strip() or None
+
+        db.session.commit()
+        return jsonify(entry.to_dict())
     
     # GET /api/stats
     @app.route("/api/stats", methods=["GET"])

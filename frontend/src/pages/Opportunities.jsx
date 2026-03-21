@@ -30,6 +30,7 @@ function getErrorMessage(error) {
   return error.response?.data?.error || 'Something went wrong while loading opportunities.'
 }
 
+// Safely formats date strings for display e.g. "2024-08-31" -> "Aug 31, 2024"
 function formatDate(value) {
   if (!value) return null
   const d = new Date(value)
@@ -37,6 +38,7 @@ function formatDate(value) {
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
+// Renders JobCard component showing title, company, source, location, posted date, deadline and skills.
 function JobCard({ job }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-2">
@@ -76,17 +78,18 @@ function JobCard({ job }) {
   )
 }
 
+//Main component state
 export default function Opportunities() {
   const [jobs, setJobs] = useState([])
   const [meta, setMeta] = useState({ page: 1, pages: 1, total: 0 })
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true) // Initial loading state
   const [isFetching, setIsFetching] = useState(false)
-  const [error, setError] = useState('')
-  const [filters, setFilters] = useState({ keyword: '', company: '', location: '', role_type: '', sort: '' })
-  const [draftFilters, setDraftFilters] = useState({ keyword: '', company: '', location: '', role_type: '', sort: '' })
+  const [error, setError] = useState('') // Current error message
+  const [filters, setFilters] = useState({ keyword: '', company: '', location: '', role_type: '', sort: '' }) // Applied filters sent to API
+  const [draftFilters, setDraftFilters] = useState({ keyword: '', company: '', location: '', role_type: '', sort: '' }) // Filters being edited by the user
   const [page, setPage] = useState(1)
 
-  useEffect(() => {
+  useEffect(() => { // Timeout 350ms after user stops typing to apply filters, to avoid excessive API calls
     const timeoutId = setTimeout(() => {
       setFilters(draftFilters)
       setPage(1)
@@ -95,7 +98,7 @@ export default function Opportunities() {
     return () => clearTimeout(timeoutId)
   }, [draftFilters])
 
-  useEffect(() => {
+  useEffect(() => { // Fetch jobs when filters or page changes
     const fetchJobs = async () => {
       setIsFetching(true)
       setError('')
