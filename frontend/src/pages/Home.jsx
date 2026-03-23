@@ -40,7 +40,7 @@ export default function Home() {
       try {
         const [recentRes, deadlineRes] = await Promise.all([
           client.get('/jobs', { params: { page: 1, per_page: 100, sort: 'scraped' } }),
-          client.get('/jobs', { params: { page: 1, per_page: 100, sort: 'deadline' } }),
+          client.get('/jobs/upcoming', { params: { limit: 3 } }),
         ])
 
         const recentResults = Array.isArray(recentRes?.data?.results) ? recentRes.data.results : []
@@ -61,13 +61,8 @@ export default function Home() {
   const topRecent = useMemo(() => recentJobs.slice(0, 10), [recentJobs])
 
   const upcomingDeadlines = useMemo(() => {
-    const withValidDeadline = deadlineJobs.filter((job) => parseDate(job.deadline))
-    const upcoming = withValidDeadline.filter((job) => isUpcomingDeadline(job.deadline))
-
-    // If everything is already expired, still surface the closest known deadlines.
-    const source = upcoming.length > 0 ? upcoming : withValidDeadline
-
-    return source
+    return deadlineJobs
+      .filter((job) => isUpcomingDeadline(job.deadline))
       .sort((a, b) => parseDate(a.deadline) - parseDate(b.deadline))
       .slice(0, 3)
   }, [deadlineJobs])

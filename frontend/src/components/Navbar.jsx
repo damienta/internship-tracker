@@ -21,7 +21,6 @@ export default function Navbar() {
         </Link>
 
         <div className="flex gap-6">
-          <NavLink to="/" className={({ isActive }) => isActive ? 'text-blue-600 text-sm' : 'text-gray-500 text-sm'}>Home</NavLink>
           <NavLink to="/opportunities" className={({ isActive }) => isActive ? 'text-blue-600 text-sm' : 'text-gray-500 text-sm'}>Opportunities</NavLink>
           <NavLink to="/tracker" className={({ isActive }) => isActive ? 'text-blue-600 text-sm' : 'text-gray-500 text-sm'}>Tracker</NavLink>
           <NavLink to="/about" className={({ isActive }) => isActive ? 'text-blue-600 text-sm' : 'text-gray-500 text-sm'}>About</NavLink>

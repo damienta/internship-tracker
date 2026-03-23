@@ -28,7 +28,7 @@ Query parameters for GET /api/jobs:
 
 import os
 import bcrypt
-from datetime import datetime
+from datetime import datetime, date
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token
@@ -188,6 +188,28 @@ def create_app(db_url: str = None) -> Flask:
             "pages":      (total + per_page - 1) // per_page,
             "results":    [i.to_dict() for i in internships],
         })
+
+    # GET /api/jobs/<id>
+    @app.route("/api/jobs/upcoming", methods=["GET"])
+    def get_upcoming_jobs():
+        """Return soonest active jobs with deadlines on or after today."""
+        try:
+            limit = min(25, max(1, int(request.args.get("limit", 3))))
+        except (ValueError, TypeError):
+            limit = 3
+
+        today = date.today()
+        jobs = (
+            Internship.query
+            .filter(Internship.is_active.is_(True))
+            .filter(Internship.deadline.isnot(None))
+            .filter(Internship.deadline >= today)
+            .order_by(Internship.deadline.asc(), Internship.scraped_at.desc())
+            .limit(limit)
+            .all()
+        )
+
+        return jsonify({"results": [job.to_dict() for job in jobs]})
 
     # GET /api/jobs/<id>
     @app.route("/api/jobs/<int:job_id>", methods=["GET"])
