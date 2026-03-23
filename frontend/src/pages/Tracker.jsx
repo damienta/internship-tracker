@@ -103,31 +103,53 @@ export default function Tracker() {
 
     const current = entries.find((entry) => entry.id === id)
     if (current) {
-      const company = field === 'company' ? String(value || '').trim() : String(current.company || '').trim()
-      const role = field === 'role' ? String(value || '').trim() : String(current.role || '').trim()
-      const link = field === 'link' ? String(value || '').trim() : String(current.link || '').trim()
-      const openingDate = field === 'opening_date' ? (value || null) : current.opening_date
-      const closingDate = field === 'closing_date' ? (value || null) : current.closing_date
-
-      if (!isValidLink(link)) {
-        const msg = 'Link must start with http:// or https://.'
+      if (field === 'company' && !String(value || '').trim()) {
+        const msg = 'Company is required.'
         setError(msg)
         toast.error(`Error: ${msg}`)
         return
       }
 
-      if (!isValidDateString(openingDate) || !isValidDateString(closingDate)) {
-        const msg = 'Dates must be valid.'
+      if (field === 'role' && !String(value || '').trim()) {
+        const msg = 'Role is required.'
         setError(msg)
         toast.error(`Error: ${msg}`)
         return
       }
 
-      if (openingDate && closingDate && closingDate < openingDate) {
-        const msg = 'Closing date cannot be earlier than opening date.'
-        setError(msg)
-        toast.error(`Error: ${msg}`)
-        return
+      if (field === 'link') {
+        const link = String(value || '').trim()
+        if (!link) {
+          const msg = 'Link is required.'
+          setError(msg)
+          toast.error(`Error: ${msg}`)
+          return
+        }
+        if (!isValidLink(link)) {
+          const msg = 'Link must start with http:// or https://.'
+          setError(msg)
+          toast.error(`Error: ${msg}`)
+          return
+        }
+      }
+
+      if (field === 'opening_date' || field === 'closing_date') {
+        const openingDate = field === 'opening_date' ? (value || null) : current.opening_date
+        const closingDate = field === 'closing_date' ? (value || null) : current.closing_date
+
+        if (!isValidDateString(openingDate) || !isValidDateString(closingDate)) {
+          const msg = 'Dates must be valid.'
+          setError(msg)
+          toast.error(`Error: ${msg}`)
+          return
+        }
+
+        if (openingDate && closingDate && closingDate < openingDate) {
+          const msg = 'Closing date cannot be earlier than opening date.'
+          setError(msg)
+          toast.error(`Error: ${msg}`)
+          return
+        }
       }
     }
 
