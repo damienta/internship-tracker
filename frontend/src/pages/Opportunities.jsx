@@ -1,19 +1,10 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import client from '../api/client'
-import locationIcon from '../assets/location.png'
+import JobCard from '../components/JobCard'
 
 // Input box tailwind.css
 const inputClass = 'border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-
-const SOURCE_LABELS = {
-  lever:      'Lever',
-  greenhouse: 'Greenhouse',
-  ashby:      'Ashby',
-  bt:         'BT',
-  hsbc:       'HSBC',
-  sap:        'SAP',
-}
 
 function getErrorMessage(error) {
   if (error.response?.status >= 500) {
@@ -29,54 +20,6 @@ function getErrorMessage(error) {
   }
 
   return error.response?.data?.error || 'Something went wrong while loading opportunities.'
-}
-
-// Safely formats date strings for display e.g. "2024-08-31" -> "Aug 31, 2024"
-function formatDate(value) {
-  if (!value) return null
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return null
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-}
-
-// Renders JobCard component showing title, company, source, location, posted date, deadline and skills.
-function JobCard({ job }) {
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-2">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="font-semibold text-gray-900 text-base">{job.title}</h2>
-          <p className="text-gray-500 text-sm">{job.company}</p>
-        </div>
-        <a
-          href={job.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Apply
-        </a>
-      </div>
-      <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-        {job.location && (
-          <span className="inline-flex items-center gap-1">
-            <img src={locationIcon} alt="" className="w-4 h-4 opacity-70" />
-            {job.location}
-          </span>
-        )}
-        {job.source_website && <span className="bg-gray-100 px-2 py-0.5 rounded">{SOURCE_LABELS[job.source_website] ?? job.source_website}</span>}
-        {formatDate(job.date_posted) && <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded">Opened {formatDate(job.date_posted)}</span>}
-        {formatDate(job.deadline) && <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded">Deadline {formatDate(job.deadline)}</span>}
-      </div>
-      {job.extracted_skills?.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-1">
-          {job.extracted_skills.slice(0, 6).map(skill => (
-            <span key={skill} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{skill}</span>
-          ))}
-        </div>
-      )}
-    </div>
-  )
 }
 
 //Main component state
