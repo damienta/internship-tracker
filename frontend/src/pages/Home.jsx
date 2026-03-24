@@ -106,7 +106,7 @@ export default function Home() {
             </div>
           </section>
 
-          <aside className="space-y-4">
+          <aside className="space-y-4 lg:pt-9">
             <div className="bg-white border border-gray-200 rounded-2xl p-4">
               <h3 className="font-semibold text-gray-900 mb-3">Upcoming Deadlines</h3>
 
