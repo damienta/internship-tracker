@@ -20,8 +20,16 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  const updateUser = (partialUserData) => { // Ensures all updates to user data are synced
+    setUser((prev) => {
+      const next = { ...(prev || {}), ...(partialUserData || {}) }
+      localStorage.setItem('user', JSON.stringify(next))
+      return next
+    })
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

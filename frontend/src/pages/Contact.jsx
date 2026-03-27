@@ -23,6 +23,7 @@ export default function Contact() {
               name="name"
               type="text"
               required
+              placeholder="e.g John Doe"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
             />
           </div>
@@ -34,6 +35,7 @@ export default function Contact() {
               name="email"
               type="email"
               required
+              placeholder="e.g you@example.com"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
             />
           </div>
@@ -46,6 +48,7 @@ export default function Contact() {
             name="subject"
             type="text"
             required
+            placeholder="e.g Feedback about the app"
             className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
           />
         </div>
@@ -57,6 +60,7 @@ export default function Contact() {
             name="message"
             rows={5}
             required
+            placeholder="Write your message here..."
             className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
           />
         </div>

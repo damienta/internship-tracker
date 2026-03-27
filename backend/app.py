@@ -12,6 +12,7 @@ Endpoints:
     GET /api/skills         - full list of recognised skill keywords
     GET /api/profile/<user_id> - fetch profile settings for one user
     PUT /api/profile/<user_id> - create/update user profile settings
+    PATCH /api/account/id - change username/email
     POST /api/account/change-password - change account password
     DELETE /api/account/<user_id> - delete account
     POST /api/auth/register - create a new user account
@@ -31,6 +32,7 @@ Query parameters for GET /api/jobs:
 """
 
 import os
+import re
 import bcrypt
 from datetime import datetime, date
 from flask import Flask, jsonify, request
@@ -114,6 +116,10 @@ def ensure_user_profile(user_id: int) -> UserProfile:
     db.session.add(profile)
     db.session.commit()
     return profile
+
+
+def is_valid_email(value: str) -> bool:
+    return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", value))
 
 
 def create_app(db_url: str = None) -> Flask:
@@ -476,22 +482,48 @@ def create_app(db_url: str = None) -> Flask:
         profile.degree = str(data.get("degree", "")).strip() or None
         profile.skills = clean_list_of_strings(data.get("skills", []))
 
-        profile.profile_public = bool(data.get("profile_public", False))
-        profile.skills_public = bool(data.get("skills_public", False))
-
-        profile.github_url = str(data.get("github_url", "")).strip() or None
-        profile.linkedin_url = str(data.get("linkedin_url", "")).strip() or None
-        profile.portfolio_url = str(data.get("portfolio_url", "")).strip() or None
-
-        cv_template = str(data.get("cv_template", "")).strip()
-        cover_letter_template = str(data.get("cover_letter_template", "")).strip()
-        if cv_template:
-            profile.cv_template = cv_template
-        if cover_letter_template:
-            profile.cover_letter_template = cover_letter_template
-
         db.session.commit()
         return jsonify({"profile": profile.to_dict()})
+
+    # PATCH /api/account/id
+    @app.route("/api/account/id", methods=["PATCH"])
+    def update_account_identity():
+        """Update username/email after confirming the current password."""
+        data = request.get_json(silent=True) or {}
+
+        try:
+            user_id = int(data.get("user_id"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "user_id is required"}), 400
+
+        current_password = str(data.get("current_password", ""))
+        new_username = str(data.get("username", "")).strip()
+        new_email = str(data.get("email", "")).strip().lower()
+
+        if not current_password:
+            return jsonify({"error": "current_password is required"}), 400
+
+        if not new_username and not new_email:
+            return jsonify({"error": "Provide a new username and/or email"}), 400
+
+        user = db.get_or_404(User, user_id)
+        if not bcrypt.checkpw(current_password.encode(), user.password_hash.encode()):
+            return jsonify({"error": "Current password is incorrect"}), 401
+
+        if new_username and new_username != user.username:
+            if User.query.filter(User.id != user.id, User.username == new_username).first():
+                return jsonify({"error": "Username already taken"}), 400
+            user.username = new_username
+
+        if new_email and new_email != user.email:
+            if not is_valid_email(new_email):
+                return jsonify({"error": "Email format is invalid"}), 400
+            if User.query.filter(User.id != user.id, User.email == new_email).first():
+                return jsonify({"error": "Email already registered"}), 400
+            user.email = new_email
+
+        db.session.commit()
+        return jsonify({"user": user.to_dict()})
 
     # POST /api/account/change-password
     @app.route("/api/account/change-password", methods=["POST"])

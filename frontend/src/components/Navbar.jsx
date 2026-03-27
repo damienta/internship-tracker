@@ -21,23 +21,29 @@ export default function Navbar() {
         </Link>
 
         <div className="flex gap-6">
-          <NavLink to="/" className={({ isActive }) => isActive ? 'text-blue-600 text-sm' : 'text-gray-500 text-sm'}>Home</NavLink>
-          <NavLink to="/opportunities" className={({ isActive }) => isActive ? 'text-blue-600 text-sm' : 'text-gray-500 text-sm'}>Opportunities</NavLink>
-          <NavLink to="/tracker" className={({ isActive }) => isActive ? 'text-blue-600 text-sm' : 'text-gray-500 text-sm'}>Tracker</NavLink>
-          <NavLink to="/about" className={({ isActive }) => isActive ? 'text-blue-600 text-sm' : 'text-gray-500 text-sm'}>About</NavLink>
-          <NavLink to="/contact-us" className={({ isActive }) => isActive ? 'text-blue-600 text-sm' : 'text-gray-500 text-sm'}>Contact Us</NavLink>
+          <NavLink to="/" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Home</NavLink>
+          <NavLink to="/opportunities" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Opportunities</NavLink>
+          <NavLink to="/tracker" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Tracker</NavLink>
+          <NavLink to="/about" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>About</NavLink>
+          <NavLink to="/contact-us" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Contact Us</NavLink>
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => navigate('/settings')}
+          <Link
+            to="/settings"
             className="flex items-center gap-2 rounded-full border border-gray-200 px-2.5 py-1.5 hover:bg-gray-50"
           >
-            <span className="w-7 h-7 rounded-full bg-slate-700 text-white text-xs font-semibold flex items-center justify-center">{initials}</span>
+            {user?.profile_image_url ? (
+              <img src={user.profile_image_url} alt="Profile" className="w-7 h-7 rounded-full object-cover" />
+            ) : (
+              <span className="w-7 h-7 rounded-full bg-slate-700 text-white text-xs font-semibold flex items-center justify-center">{initials}</span>
+            )}
             <span className="text-sm text-gray-600">{user?.username}</span>
-          </button>
-          <button onClick={handleLogout} className="text-sm text-red-500 hover:text-red-700">
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="text-sm font-medium text-red-700 border border-red-200 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100"
+          >
             Log out
           </button>
         </div>

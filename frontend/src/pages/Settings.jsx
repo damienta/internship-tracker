@@ -37,7 +37,7 @@ function getInvalidSkills(skills) {
 }
 
 export default function Settings() {
-  const { user, logout } = useAuth()
+  const { user, logout, updateUser } = useAuth()
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(true)
@@ -67,6 +67,12 @@ export default function Settings() {
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false)
+  const [showIdentityModal, setShowIdentityModal] = useState(false)
+  const [identityForm, setIdentityForm] = useState({
+    username: '',
+    email: '',
+    current_password: '',
+  })
 
   useEffect(() => {
     if (!user?.id) {
@@ -85,12 +91,21 @@ export default function Settings() {
         const profileData = profileRes?.data?.profile || {}
         setUsername(profileRes?.data?.username || '')
         setEmail(profileRes?.data?.email || '')
+        setIdentityForm((prev) => ({
+          ...prev,
+          username: profileRes?.data?.username || '',
+          email: profileRes?.data?.email || '',
+        }))
 
         setProfile((prev) => ({
           ...prev,
           ...profileData,
           skills: Array.isArray(profileData.skills) ? profileData.skills : [],
         }))
+        updateUser({
+          username: profileRes?.data?.username || user?.username,
+          email: profileRes?.data?.email || user?.email,
+        })
         setSkillsInput((Array.isArray(profileData.skills) ? profileData.skills : []).join(', '))
 
         const skillList = Array.isArray(skillsRes?.data) ? skillsRes.data : []
@@ -218,6 +233,44 @@ export default function Settings() {
     }
   }
 
+  const updateIdentity = async () => {
+    if (!user?.id) return
+
+    const newUsername = String(identityForm.username || '').trim()
+    const newEmail = String(identityForm.email || '').trim().toLowerCase()
+    const currentPassword = String(identityForm.current_password || '')
+
+    if (!currentPassword) {
+      toast.error('Error: Enter your current password.')
+      return
+    }
+
+    if (!newUsername || !newEmail) {
+      toast.error('Error: Username and email are required.')
+      return
+    }
+
+    try {
+      const { data } = await api.patch('/account/id', {
+        user_id: user.id,
+        username: newUsername,
+        email: newEmail,
+        current_password: currentPassword,
+      })
+
+      const updatedUser = data?.user || {}
+      setUsername(updatedUser.username || newUsername)
+      setEmail(updatedUser.email || newEmail)
+      setIdentityForm({ username: updatedUser.username || newUsername, email: updatedUser.email || newEmail, current_password: '' })
+      updateUser({ username: updatedUser.username || newUsername, email: updatedUser.email || newEmail })
+      setShowIdentityModal(false)
+      toast.success('Username/email updated.')
+    } catch (err) {
+      const message = err?.response?.data?.error || 'Could not update username/email.'
+      toast.error(`Error: ${message}`)
+    }
+  }
+
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto px-6 py-10">
@@ -250,27 +303,45 @@ export default function Settings() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Username</label>
-            <input className={`${inputClass} bg-gray-50`} value={username} disabled />
+            <input className={`${inputClass} bg-gray-50`} value="" placeholder={username || 'username'} disabled />
           </div>
 
           <div>
             <label className={labelClass}>Email</label>
-            <input className={`${inputClass} bg-gray-50`} value={email} disabled />
+            <input className={`${inputClass} bg-gray-50`} value="" placeholder={email || 'email@example.com'} disabled />
           </div>
 
           <div>
             <label className={labelClass}>Full Name</label>
-            <input name="full_name" className={inputClass} value={profile.full_name || ''} onChange={handleProfileChange} placeholder="Your full name" />
+            <input
+              name="full_name"
+              className={inputClass}
+              value={profile.full_name && profile.full_name !== 'None' ? profile.full_name : ''}
+              onChange={handleProfileChange}
+              placeholder="e.g. John Doe"
+            />
           </div>
 
           <div>
             <label className={labelClass}>University</label>
-            <input name="university" className={inputClass} value={profile.university || ''} onChange={handleProfileChange} placeholder="e.g University of Southampton" />
+            <input
+              name="university"
+              className={inputClass}
+              value={profile.university && profile.university !== 'None' ? profile.university : ''}
+              onChange={handleProfileChange}
+              placeholder="e.g. University of Southampton"
+            />
           </div>
 
           <div className="md:col-span-2">
             <label className={labelClass}>Degree</label>
-            <input name="degree" className={inputClass} value={profile.degree || ''} onChange={handleProfileChange} placeholder="e.g BSc Computer Science" />
+            <input
+              name="degree"
+              className={inputClass}
+              value={profile.degree && profile.degree !== 'None' ? profile.degree : ''}
+              onChange={handleProfileChange}
+              placeholder="e.g. BSc Computer Science"
+            />
           </div>
         </div>
       </section>
@@ -315,18 +386,32 @@ export default function Settings() {
       </section>
 
       <section className="bg-white border border-gray-200 rounded-xl p-5">
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">Notifications</h2>
+        <p className="text-sm text-gray-500"></p>
+      </section>
+
+      <section className="bg-white border border-gray-200 rounded-xl p-5">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Account Basics</h2>
 
         <div className="space-y-4">
           <div className="p-4 border border-gray-200 rounded-lg">
-            <h3 className="font-semibold text-gray-900 mb-2">Change Password</h3>
-            <button
-              type="button"
-              onClick={() => setShowChangePasswordModal(true)}
-              className="px-4 py-2 text-sm rounded-lg bg-slate-800 text-white hover:bg-slate-900"
-            >
-              Change Password
-            </button>
+            <h3 className="font-semibold text-gray-900 mb-3">Account Details</h3>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setShowChangePasswordModal(true)}
+                className="px-4 py-2 text-sm rounded-lg bg-slate-800 text-white hover:bg-slate-900"
+              >
+                Change Password
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowIdentityModal(true)}
+                className="px-4 py-2 text-sm rounded-lg bg-slate-800 text-white hover:bg-slate-900"
+              >
+                Update Username/Email
+              </button>
+            </div>
           </div>
 
           <div className="p-4 border border-gray-200 rounded-lg">
@@ -340,11 +425,6 @@ export default function Settings() {
             </button>
           </div>
         </div>
-      </section>
-
-      <section className="bg-white border border-gray-200 rounded-xl p-5">
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">Notifications</h2>
-        <p className="text-sm text-gray-500"></p>
       </section>
 
       {showChangePasswordModal && (
@@ -455,6 +535,66 @@ export default function Settings() {
                 onClick={deleteAccount}
               >
                 Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showIdentityModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md bg-white rounded-xl border border-gray-200 p-5">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Update Username and Email</h3>
+            <p className="text-sm text-gray-600 mb-4">Confirm with your current password to save changes.</p>
+
+            <div className="space-y-3">
+              <div>
+                <label className={labelClass}>New Username</label>
+                <input
+                  className={inputClass}
+                  value={identityForm.username}
+                  onChange={(e) => setIdentityForm((prev) => ({ ...prev, username: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>New Email</label>
+                <input
+                  type="email"
+                  className={inputClass}
+                  value={identityForm.email}
+                  onChange={(e) => setIdentityForm((prev) => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Current Password</label>
+                <input
+                  type="password"
+                  className={inputClass}
+                  value={identityForm.current_password}
+                  onChange={(e) => setIdentityForm((prev) => ({ ...prev, current_password: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                className="px-3 py-2 text-sm rounded-lg border border-gray-300 hover:bg-gray-50"
+                onClick={() => {
+                  setShowIdentityModal(false)
+                  setIdentityForm((prev) => ({ ...prev, current_password: '' }))
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="px-3 py-2 text-sm rounded-lg bg-slate-800 text-white hover:bg-slate-900"
+                onClick={updateIdentity}
+              >
+                Confirm Update
               </button>
             </div>
           </div>
