@@ -10,6 +10,10 @@ Endpoints:
     GET /api/companies      - distinct list of companies in the database
     GET /api/sources        - distinct list of sources in the database
     GET /api/skills         - full list of recognised skill keywords
+    GET /api/profile/<user_id> - fetch profile settings for one user
+    PUT /api/profile/<user_id> - create/update user profile settings
+    POST /api/account/change-password - change account password
+    DELETE /api/account/<user_id> - delete account
     POST /api/auth/register - create a new user account
     POST /api/auth/login    - log in and receive a JWT token
 
@@ -33,7 +37,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token
 from sqlalchemy import func
-from models import db, Internship, User, TrackerEntry
+from models import db, Internship, User, UserProfile, TrackerEntry
 from scraper.skills import SKILLS
 from dotenv import load_dotenv
 
@@ -80,6 +84,36 @@ def parse_iso_date(value):
         return datetime.strptime(cleaned, "%Y-%m-%d").date()
     except ValueError:
         return None
+
+
+def clean_list_of_strings(values):
+    """Normalize an incoming list of strings and remove blanks/duplicates."""
+    if not isinstance(values, list):
+        return []
+
+    normalized = []
+    seen = set()
+    for raw in values:
+        item = str(raw).strip()
+        if not item:
+            continue
+        key = item.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized.append(item)
+    return normalized
+
+
+def ensure_user_profile(user_id: int) -> UserProfile:
+    profile = UserProfile.query.filter_by(user_id=user_id).first()
+    if profile:
+        return profile
+
+    profile = UserProfile(user_id=user_id)
+    db.session.add(profile)
+    db.session.commit()
+    return profile
 
 
 def create_app(db_url: str = None) -> Flask:
@@ -409,6 +443,103 @@ def create_app(db_url: str = None) -> Flask:
             .all()
         )
         return jsonify([r[0] for r in rows])
+
+    # GET /api/skills
+    @app.route("/api/skills", methods=["GET"])
+    def get_skills():
+        """Return a sorted list of recognised skills."""
+        return jsonify(sorted(set(SKILLS)))
+
+    # GET /api/profile/<user_id>
+    @app.route("/api/profile/<int:user_id>", methods=["GET"])
+    def get_profile(user_id: int):
+        """Return profile settings for one user."""
+        user = db.get_or_404(User, user_id)
+        profile = ensure_user_profile(user.id)
+
+        return jsonify({
+            "username": user.username,
+            "email": user.email,
+            "profile": profile.to_dict(),
+        })
+
+    # PUT /api/profile/<user_id>
+    @app.route("/api/profile/<int:user_id>", methods=["PUT"])
+    def update_profile(user_id: int):
+        """Create or update profile settings for one user."""
+        user = db.get_or_404(User, user_id)
+        profile = ensure_user_profile(user.id)
+        data = request.get_json(silent=True) or {}
+
+        profile.full_name = str(data.get("full_name", "")).strip() or None
+        profile.university = str(data.get("university", "")).strip() or None
+        profile.degree = str(data.get("degree", "")).strip() or None
+        profile.skills = clean_list_of_strings(data.get("skills", []))
+
+        profile.profile_public = bool(data.get("profile_public", False))
+        profile.skills_public = bool(data.get("skills_public", False))
+
+        profile.github_url = str(data.get("github_url", "")).strip() or None
+        profile.linkedin_url = str(data.get("linkedin_url", "")).strip() or None
+        profile.portfolio_url = str(data.get("portfolio_url", "")).strip() or None
+
+        cv_template = str(data.get("cv_template", "")).strip()
+        cover_letter_template = str(data.get("cover_letter_template", "")).strip()
+        if cv_template:
+            profile.cv_template = cv_template
+        if cover_letter_template:
+            profile.cover_letter_template = cover_letter_template
+
+        db.session.commit()
+        return jsonify({"profile": profile.to_dict()})
+
+    # POST /api/account/change-password
+    @app.route("/api/account/change-password", methods=["POST"])
+    def change_password():
+        """Change password for a user after verifying the current password."""
+        data = request.get_json(silent=True) or {}
+
+        try:
+            user_id = int(data.get("user_id"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "user_id is required"}), 400
+
+        current_password = str(data.get("current_password", ""))
+        new_password = str(data.get("new_password", ""))
+
+        if not current_password or not new_password:
+            return jsonify({"error": "current_password and new_password are required"}), 400
+
+        if len(new_password) < 8:
+            return jsonify({"error": "New password must be at least 8 characters"}), 400
+
+        user = db.get_or_404(User, user_id)
+        if not bcrypt.checkpw(current_password.encode(), user.password_hash.encode()):
+            return jsonify({"error": "Current password is incorrect"}), 401
+
+        user.password_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+        db.session.commit()
+        return jsonify({"ok": True})
+
+    # DELETE /api/account/<user_id>
+    @app.route("/api/account/<int:user_id>", methods=["DELETE"])
+    def delete_account(user_id: int):
+        """Delete account (and related profile/tracker data) after password confirmation."""
+        data = request.get_json(silent=True) or {}
+        password = str(data.get("password", ""))
+
+        if not password:
+            return jsonify({"error": "password is required"}), 400
+
+        user = db.get_or_404(User, user_id)
+        if not bcrypt.checkpw(password.encode(), user.password_hash.encode()):
+            return jsonify({"error": "Invalid password"}), 401
+
+        TrackerEntry.query.filter_by(user_id=user.id).delete()
+        UserProfile.query.filter_by(user_id=user.id).delete()
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({"ok": True})
 
     # GET /api/auth/register
     @app.route("/api/auth/register", methods=["POST"])

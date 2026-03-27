@@ -30,6 +30,49 @@ class User(db.Model):
             'email':    self.email,
         }
 
+
+class UserProfile(db.Model):
+    """Stores user profile preferences and profile metadata."""
+    __tablename__ = 'user_profiles'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), unique=True, nullable=False)
+
+    full_name = db.Column(db.String(120))
+    university = db.Column(db.String(160))
+    degree = db.Column(db.String(160))
+    skills = db.Column(db.JSON, default=list)
+
+    # Privacy controls
+    profile_public = db.Column(db.Boolean, default=False, nullable=False)
+    skills_public = db.Column(db.Boolean, default=False, nullable=False)
+
+    # Documents and profile links
+    github_url = db.Column(db.String(500))
+    linkedin_url = db.Column(db.String(500))
+    portfolio_url = db.Column(db.String(500))
+    cv_template = db.Column(db.String(80), default='student-tech', nullable=False)
+    cover_letter_template = db.Column(db.String(80), default='impact-brief', nullable=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'user_id': self.user_id,
+            'full_name': self.full_name,
+            'university': self.university,
+            'degree': self.degree,
+            'skills': self.skills or [],
+            'profile_public': self.profile_public,
+            'skills_public': self.skills_public,
+            'github_url': self.github_url,
+            'linkedin_url': self.linkedin_url,
+            'portfolio_url': self.portfolio_url,
+            'cv_template': self.cv_template,
+            'cover_letter_template': self.cover_letter_template,
+        }
+
 class Internship(db.Model):
     """Database model for storing internship listings."""
     __tablename__ = 'internships'

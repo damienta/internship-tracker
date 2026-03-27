@@ -7,6 +7,7 @@ import Opportunities from './pages/Opportunities'
 import Tracker from './pages/Tracker'
 import About from './pages/About'
 import Contact from './pages/Contact'
+import Settings from './pages/Settings'
 import Login from './pages/Login'
 import Register from './pages/Register'
 
@@ -70,6 +71,7 @@ function App() {
           <Route path="/" element={<PrivateRoute><Home /></PrivateRoute>} />
           <Route path="/opportunities" element={<PrivateRoute><Opportunities /></PrivateRoute>} />
           <Route path="/tracker" element={<PrivateRoute><Tracker /></PrivateRoute>} />
+          <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
           <Route path="/about" element={<PrivateRoute><About /></PrivateRoute>} />
           <Route path="/contact-us" element={<PrivateRoute><Contact /></PrivateRoute>} />
           <Route path="*" element={<NotFound />} />

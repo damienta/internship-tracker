@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 export default function Navbar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const initials = (user?.username || 'U').slice(0, 2).toUpperCase()
 
   const handleLogout = () => {
     logout()
@@ -28,7 +29,14 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-gray-500 text-sm">{user?.username}</span>
+          <button
+            type="button"
+            onClick={() => navigate('/settings')}
+            className="flex items-center gap-2 rounded-full border border-gray-200 px-2.5 py-1.5 hover:bg-gray-50"
+          >
+            <span className="w-7 h-7 rounded-full bg-slate-700 text-white text-xs font-semibold flex items-center justify-center">{initials}</span>
+            <span className="text-sm text-gray-600">{user?.username}</span>
+          </button>
           <button onClick={handleLogout} className="text-sm text-red-500 hover:text-red-700">
             Log out
           </button>
