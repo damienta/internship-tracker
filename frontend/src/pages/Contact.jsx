@@ -3,10 +3,10 @@ export default function Contact() {
     <div className="max-w-3xl mx-auto px-6 py-10">
       <h1 className="text-3xl font-bold text-slate-900">Contact Us</h1>
       <p className="mt-2 text-sm text-slate-600">
-        Got any questions, feedback, or partnerships? We would love to hear from you!
+        Questions, feedback on how to improve the website, or collaboration ideas are always welcome.
       </p>
-      <p className="mt-1 text-sm text-slate-600">
-        Send us a message using the form below, or email me directly at tadamien8@gmail.com.
+      <p className="mt-1 text-sm text-slate-600 leading-relaxed">
+        Send a message below or email ne directly at <span className="font-medium">tadamien8@gmail.com</span>.
       </p>
 
       <form
@@ -23,7 +23,7 @@ export default function Contact() {
               name="name"
               type="text"
               required
-              placeholder="e.g John Doe"
+              placeholder="How should we address you?"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
             />
           </div>
@@ -35,7 +35,7 @@ export default function Contact() {
               name="email"
               type="email"
               required
-              placeholder="e.g you@example.com"
+              placeholder="Where should we send our reply?"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
             />
           </div>
@@ -48,7 +48,7 @@ export default function Contact() {
             name="subject"
             type="text"
             required
-            placeholder="e.g Feedback about the app"
+            placeholder="What can we help you with today?"
             className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
           />
         </div>
@@ -60,7 +60,7 @@ export default function Contact() {
             name="message"
             rows={5}
             required
-            placeholder="Write your message here..."
+            placeholder="Share a little context so we can give you a useful, specific response."
             className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
           />
         </div>
@@ -69,7 +69,7 @@ export default function Contact() {
           type="submit"
           className="rounded-lg bg-black text-white px-4 py-2 text-sm hover:opacity-90"
         >
-          Send
+          Send Message
         </button>
       </form>
     </div>

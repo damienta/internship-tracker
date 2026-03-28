@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import defaultPfp from '../assets/default_pfp.jpg'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const initials = (user?.username || 'U').slice(0, 2).toUpperCase()
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -33,8 +36,13 @@ export default function Navbar() {
             to="/settings"
             className="flex items-center gap-2 rounded-full border border-gray-200 px-2.5 py-1.5 hover:bg-gray-50"
           >
-            {user?.profile_image_url ? (
-              <img src={user.profile_image_url} alt="Profile" className="w-7 h-7 rounded-full object-cover" />
+            {!avatarLoadFailed ? (
+              <img
+                src={defaultPfp}
+                alt="Profile"
+                className="w-7 h-7 rounded-full object-cover"
+                onError={() => setAvatarLoadFailed(true)}
+              />
             ) : (
               <span className="w-7 h-7 rounded-full bg-slate-700 text-white text-xs font-semibold flex items-center justify-center">{initials}</span>
             )}
