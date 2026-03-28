@@ -59,6 +59,47 @@ function normalizeStatus(value) {
   return status || 'Not Applied'
 }
 
+function getFilterButtonClass(filterValue, active) {
+  const base = 'px-3 py-1.5 rounded-xl border text-sm font-medium whitespace-nowrap cursor-pointer transition-all'
+  const inactive = 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+  const palette = {
+    All: {
+      active: 'border-slate-400 bg-slate-100 text-slate-900',
+    },
+    'Not Applied': {
+      active: 'border-gray-400 bg-gray-100 text-gray-800',
+    },
+    Applied: {
+      active: 'border-blue-400 bg-blue-100 text-blue-900',
+    },
+    Interview: {
+      active: 'border-amber-400 bg-amber-100 text-amber-900',
+    },
+    Offer: {
+      active: 'border-emerald-400 bg-emerald-100 text-emerald-900',
+    },
+    Unsuccessful: {
+      active: 'border-rose-400 bg-rose-100 text-rose-900',
+    },
+  }
+
+  const tone = palette[filterValue] || palette.All
+  return [base, active ? tone.active : inactive].join(' ')
+}
+
+function getStatusSelectClass(statusValue) {
+  const status = normalizeStatus(statusValue)
+  const base = 'w-full border rounded px-2 py-1 text-xs transition-colors focus:outline-none focus:ring-2'
+
+  if (status === 'Not Applied') return `${base} border-gray-300 bg-gray-50 text-gray-800 focus:ring-gray-300`
+  if (status === 'Applied') return `${base} border-blue-300 bg-blue-50 text-blue-900 focus:ring-blue-300`
+  if (status === 'Offer') return `${base} border-emerald-300 bg-emerald-50 text-emerald-900 focus:ring-emerald-300`
+  if (status === 'Unsuccessful') return `${base} border-rose-300 bg-rose-50 text-rose-900 focus:ring-rose-300`
+  if (INTERVIEW_STATUSES.has(status)) return `${base} border-amber-300 bg-amber-50 text-amber-900 focus:ring-amber-300`
+
+  return `${base} border-gray-300 bg-white text-gray-800 focus:ring-gray-300`
+}
+
 function matchesStatusFilter(status, filterValue) {
   if (filterValue === 'All') return true
   const normalized = normalizeStatus(status)
@@ -319,12 +360,7 @@ export default function Tracker() {
                 key={filter.value}
                 type="button"
                 onClick={() => setStatusFilter(filter.value)}
-                className={[
-                  'px-3 py-1.5 rounded-xl border text-sm font-medium whitespace-nowrap cursor-pointer transition-all',
-                  active
-                    ? 'border-blue-400 bg-blue-100 text-blue-900'
-                    : 'border-blue-200 bg-white text-gray-800 hover:bg-blue-50 hover:border-blue-300 hover:shadow-sm',
-                ].join(' ')}
+                className={getFilterButtonClass(filter.value, active)}
               >
                 {filter.label}
               </button>
@@ -338,7 +374,12 @@ export default function Tracker() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <div>
               <label className={fieldLabelClass}>Status</label>
-              <select name="status" value={form.status} onChange={handleFormChange} className={inputClass}>
+              <select
+                name="status"
+                value={form.status}
+                onChange={handleFormChange}
+                className={getStatusSelectClass(form.status)}
+              >
                 {STATUS_OPTIONS.map((status) => (
                   <option key={status} value={status}>{status}</option>
                 ))}
@@ -423,7 +464,7 @@ export default function Tracker() {
                         handleEntryChange(entry.id, 'status', value)
                         saveField(entry.id, 'status', value)
                       }}
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                      className={getStatusSelectClass(entry.status)}
                     >
                       {STATUS_OPTIONS.map((status) => (
                         <option key={status} value={status}>{status}</option>
@@ -485,11 +526,23 @@ export default function Tracker() {
                       <button
                         type="button"
                         onClick={() => handleDelete(entry.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity border border-red-200 text-red-600 rounded px-2 py-1 text-xs hover:bg-red-50"
+                        className="opacity-0 group-hover:opacity-100 transition-all border border-red-200 text-red-600 rounded px-2 py-1 hover:bg-red-50 hover:border-red-300"
                         aria-label="Delete entry"
                         title="Delete"
                       >
-                        Bin
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          className="w-4 h-4"
+                          aria-hidden="true"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M9 3.75A1.5 1.5 0 0 1 10.5 2.25h3A1.5 1.5 0 0 1 15 3.75V4.5h4.125a.75.75 0 0 1 0 1.5h-.73l-.793 12.309A2.25 2.25 0 0 1 15.357 20.5H8.643a2.25 2.25 0 0 1-2.245-2.191L5.605 6h-.73a.75.75 0 0 1 0-1.5H9v-.75ZM10.5 4.5h3v-.75h-3v.75Zm.75 4.5a.75.75 0 0 0-1.5 0v7.5a.75.75 0 0 0 1.5 0V9Zm3.75-.75a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
                       </button>
                     </div>
                   </td>
