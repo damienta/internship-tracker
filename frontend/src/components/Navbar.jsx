@@ -15,7 +15,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0">
+    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
 
         <Link to="/" className="flex items-center gap-2 font-semibold">
@@ -27,6 +27,7 @@ export default function Navbar() {
           <NavLink to="/" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Home</NavLink>
           <NavLink to="/opportunities" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Opportunities</NavLink>
           <NavLink to="/tracker" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Tracker</NavLink>
+          <NavLink to="/community" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Community</NavLink>
           <NavLink to="/about" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>About</NavLink>
           <NavLink to="/contact-us" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Contact Us</NavLink>
         </div>

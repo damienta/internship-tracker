@@ -163,6 +163,7 @@ export default function Settings() {
         skills: Array.isArray(savedProfile.skills) ? savedProfile.skills : [],
       }))
       setSkillsInput((Array.isArray(savedProfile.skills) ? savedProfile.skills : []).join(', '))
+
       toast.success('Settings saved.')
     } catch (err) {
       const message = err?.response?.data?.error || 'Failed to save settings.'
@@ -387,7 +388,10 @@ export default function Settings() {
 
       <section className="bg-white border border-gray-200 rounded-xl p-5">
         <h2 className="text-lg font-semibold text-gray-900 mb-1">Notifications</h2>
-        <p className="text-sm text-gray-500"></p>
+        <p className="text-sm text-gray-500">
+          Planned notification ideas: email notifications for new matching opportunities, deadline reminders,
+          tracker stage updates, and account security alerts.
+        </p>
       </section>
 
       <section className="bg-white border border-gray-200 rounded-xl p-5">
