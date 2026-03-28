@@ -54,11 +54,13 @@ ROLE_TYPE_KEYWORDS = {
 }
 
 TRACKER_STATUSES = {
+    "Not Applied",
     "Applied",
-    "Accepted",
-    "Rejected",
+    "Offer",
+    "Unsuccessful",
     "First Interview",
     "Second Interview",
+    "Final Interview",
     "Phone Screening",
     "Recruiter Call",
 }
@@ -280,7 +282,7 @@ def create_app(db_url: str = None) -> Flask:
         """Create a tracker entry."""
         data = request.get_json(silent=True) or {}
 
-        status = str(data.get("status", "Phone Screening")).strip()
+        status = str(data.get("status", "Not Applied")).strip()
         company = str(data.get("company", "")).strip()
         role = str(data.get("role", "")).strip()
         user_id = data.get("user_id")

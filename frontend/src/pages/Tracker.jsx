@@ -6,14 +6,33 @@ import { useAuth } from '../context/AuthContext'
 const PAGE_SIZE = 10
 
 const STATUS_OPTIONS = [
+  'Not Applied',
   'Applied',
   'Phone Screening',
   'Recruiter Call',
   'First Interview',
   'Second Interview',
-  'Accepted',
-  'Rejected'
+  'Final Interview',
+  'Offer',
+  'Unsuccessful'
 ]
+
+const STATUS_FILTERS = [
+  { value: 'All', label: 'All' },
+  { value: 'Not Applied', label: 'Not applied' },
+  { value: 'Applied', label: 'Applied' },
+  { value: 'Interview', label: 'Interview' },
+  { value: 'Offer', label: 'Offer' },
+  { value: 'Unsuccessful', label: 'Unsuccessful' },
+]
+
+const INTERVIEW_STATUSES = new Set([
+  'Phone Screening',
+  'Recruiter Call',
+  'First Interview',
+  'Second Interview',
+  'Final Interview',
+])
 
 const inputClass = 'w-full border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500'
 const fieldLabelClass = 'block text-xs font-semibold tracking-wide text-gray-600 uppercase mb-1'
@@ -35,16 +54,29 @@ function isValidLink(value) {
   return value.startsWith('http://') || value.startsWith('https://')
 }
 
+function normalizeStatus(value) {
+  const status = String(value || '').trim()
+  return status || 'Not Applied'
+}
+
+function matchesStatusFilter(status, filterValue) {
+  if (filterValue === 'All') return true
+  const normalized = normalizeStatus(status)
+  if (filterValue === 'Interview') return INTERVIEW_STATUSES.has(normalized)
+  return normalized === filterValue
+}
+
 export default function Tracker() {
   const { user } = useAuth()
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All')
 
   const [page, setPage] = useState(1)
   const [showAddForm, setShowAddForm] = useState(false)
   const [form, setForm] = useState({
-    status: 'Applied',
+    status: 'Not Applied',
     company: '',
     role: '',
     opening_date: '',
@@ -66,7 +98,14 @@ export default function Tracker() {
       setError('')
       try {
         const { data } = await api.get('/tracker', { params: { user_id: user.id } })
-        setEntries(Array.isArray(data) ? data : [])
+        setEntries(
+          Array.isArray(data)
+            ? data.map((entry) => ({
+              ...entry,
+              status: normalizeStatus(entry.status),
+            }))
+            : []
+        )
       } catch {
         setError('Failed to load tracker entries.')
       } finally {
@@ -77,9 +116,16 @@ export default function Tracker() {
     fetchEntries()
   }, [user?.id])
 
-  const filtered = useMemo(() => entries, [entries])
+  const filtered = useMemo(
+    () => entries.filter((entry) => matchesStatusFilter(entry.status, statusFilter)),
+    [entries, statusFilter]
+  )
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+
+  useEffect(() => {
+    setPage(1)
+  }, [statusFilter])
 
   useEffect(() => {
     if (page > totalPages) {
@@ -215,7 +261,7 @@ export default function Tracker() {
       const { data } = await api.post('/tracker', payload)
       setEntries((prev) => [data, ...prev])
       setForm({
-        status: 'Applied',
+        status: 'Not Applied',
         company: '',
         role: '',
         opening_date: '',
@@ -262,6 +308,29 @@ export default function Tracker() {
         >
           Add Application
         </button>
+      </div>
+
+      <div className="mb-4 overflow-x-auto">
+        <div className="flex min-w-max items-center gap-2">
+          {STATUS_FILTERS.map((filter) => {
+            const active = statusFilter === filter.value
+            return (
+              <button
+                key={filter.value}
+                type="button"
+                onClick={() => setStatusFilter(filter.value)}
+                className={[
+                  'px-3 py-1.5 rounded-xl border text-sm font-medium whitespace-nowrap cursor-pointer transition-all',
+                  active
+                    ? 'border-blue-400 bg-blue-100 text-blue-900'
+                    : 'border-blue-200 bg-white text-gray-800 hover:bg-blue-50 hover:border-blue-300 hover:shadow-sm',
+                ].join(' ')}
+              >
+                {filter.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {showAddForm && (
