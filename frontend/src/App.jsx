@@ -8,6 +8,12 @@ import Tracker from './pages/Tracker'
 import About from './pages/About'
 import Contact from './pages/Contact'
 import Community from './pages/Community'
+import CvTemplates from './pages/community/CvTemplates'
+import CvExamples from './pages/community/CvExamples'
+import CoverLetterTemplates from './pages/community/CoverLetterTemplates'
+import HowToGuides from './pages/community/HowToGuides'
+import CompanyRatings from './pages/community/CompanyRatings'
+import CommunityDiscussion from './pages/community/CommunityDiscussion'
 import Settings from './pages/Settings'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -75,6 +81,12 @@ function App() {
           <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
           <Route path="/about" element={<PrivateRoute><About /></PrivateRoute>} />
           <Route path="/community" element={<PrivateRoute><Community /></PrivateRoute>} />
+          <Route path="/community/cv-templates" element={<PrivateRoute><CvTemplates /></PrivateRoute>} />
+          <Route path="/community/cv-examples" element={<PrivateRoute><CvExamples /></PrivateRoute>} />
+          <Route path="/community/cover-letter-templates" element={<PrivateRoute><CoverLetterTemplates /></PrivateRoute>} />
+          <Route path="/community/how-to-guides" element={<PrivateRoute><HowToGuides /></PrivateRoute>} />
+          <Route path="/community/company-ratings" element={<PrivateRoute><CompanyRatings /></PrivateRoute>} />
+          <Route path="/community/discussion" element={<PrivateRoute><CommunityDiscussion /></PrivateRoute>} />
           <Route path="/contact-us" element={<PrivateRoute><Contact /></PrivateRoute>} />
           <Route path="*" element={<NotFound />} />
         </Route>

@@ -29,7 +29,7 @@ export default function Navbar() {
           <NavLink to="/tracker" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Tracker</NavLink>
           <NavLink to="/community" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Community</NavLink>
           <NavLink to="/about" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>About</NavLink>
-          <NavLink to="/contact-us" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Contact Us</NavLink>
+          <NavLink to="/contact-us" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Contact Me</NavLink>
         </div>
 
         <div className="flex items-center gap-3">

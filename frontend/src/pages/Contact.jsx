@@ -1,12 +1,12 @@
 export default function Contact() {
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">
-      <h1 className="text-3xl font-bold text-slate-900">Contact Us</h1>
+      <h1 className="text-3xl font-bold text-slate-900">Contact Me</h1>
       <p className="mt-2 text-sm text-slate-600">
-        Questions, feedback on how to improve the website, or collaboration ideas are always welcome.
+        Questions, website feedback, and collaboration ideas are always welcome.
       </p>
       <p className="mt-1 text-sm text-slate-600 leading-relaxed">
-        Send a message below or email ne directly at <span className="font-medium">tadamien8@gmail.com</span>.
+        You can also send your CV for advice and feedback. Use the form below or email me directly at <span className="font-medium">tadamien8@gmail.com</span>.
       </p>
 
       <form
@@ -48,7 +48,7 @@ export default function Contact() {
             name="subject"
             type="text"
             required
-            placeholder="What can we help you with today?"
+            placeholder="e.g CV feedback request"
             className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
           />
         </div>
@@ -60,7 +60,7 @@ export default function Contact() {
             name="message"
             rows={5}
             required
-            placeholder="Share a little context so we can give you a useful, specific response."
+            placeholder="Write your message"
             className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
           />
         </div>
