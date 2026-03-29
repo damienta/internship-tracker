@@ -5,12 +5,17 @@ export default function Community() {
 
       <section className="mt-6 bg-white border border-slate-200 rounded-xl p-6">
         <h2 className="text-xl font-semibold text-slate-900">Ideas To Build Here</h2>
-        <p className="mt-3 text-slate-700 leading-relaxed">
-          This space can grow into a shared student hub with CV templates, CV examples, cover letter templates,
-          and practical guides on how to research a company before applying. We can also add company ratings with
-          structured criteria so reviews stay useful and fair, for example: interview experience, communication speed,
-          application transparency, role clarity, and overall candidate support.
-        </p>
+        <ul className="mt-3 space-y-2 text-slate-700 list-disc pl-5">
+          <li>CV templates for different roles and experience levels.</li>
+          <li>CV examples that show strong structure and bullet-point style.</li>
+          <li>Cover letter templates (formal, concise, impact-focused).</li>
+          <li>Practical guides on how to research a company before applying.</li>
+          <li>Practical guides on how to write a strong CV for each application.</li>
+          <li>CV advice and common mistakes to avoid.</li>
+          <li>Company ratings using structured criteria (interview experience, communication speed, transparency, role clarity, candidate support).</li>
+          <li>Community discussions for sharing application tips and experiences.</li>
+          <li>Skill-match and notifications ideas (for example: email alerts for new matching opportunities and deadline reminders).</li>
+        </ul>
       </section>
     </div>
   )
