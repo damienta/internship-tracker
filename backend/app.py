@@ -39,7 +39,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token
 from sqlalchemy import func
-from models import db, Internship, User, UserProfile, TrackerEntry
+from models import db, Internship, User, UserProfile, TrackerEntry, CommunityThread, ThreadReply
 from scraper.skills import SKILLS
 from dotenv import load_dotenv
 
@@ -64,6 +64,8 @@ TRACKER_STATUSES = {
     "Phone Screening",
     "Recruiter Call",
 }
+
+THREAD_CATEGORIES = {"discussion", "company-ratings"}
 
 
 def title_role_type(title: str) -> str:
@@ -409,6 +411,125 @@ def create_app(db_url: str = None) -> Flask:
         db.session.delete(entry)
         db.session.commit()
         return jsonify({"ok": True}), 200
+
+    # Turns thread into API-safe JSON with author username included
+    def return_thread_author(thread: CommunityThread):
+        author = db.session.get(User, thread.user_id)
+        payload = thread.to_dict()
+        payload["author_username"] = author.username if author else "Unknown"
+        return payload
+
+    # Looks up author
+    def return_author(reply: ThreadReply):
+        author = db.session.get(User, reply.user_id)
+        payload = reply.to_dict()
+        payload["author_username"] = author.username if author else "Unknown"
+        return payload
+
+    # Converts thread model object into plain dictionary
+    @app.route("/api/community/threads", methods=["GET"])
+    def get_community_threads():
+        category = request.args.get("category", "discussion").strip().lower()
+        if category not in THREAD_CATEGORIES:
+            return jsonify({"error": "Invalid category"}), 400
+
+        threads = (
+            CommunityThread.query
+            .filter_by(category=category)
+            .order_by(CommunityThread.updated_at.desc(), CommunityThread.created_at.desc())
+            .all()
+        )
+        return jsonify([return_thread_author(thread) for thread in threads])
+
+    # Adds a new thread
+    @app.route("/api/community/threads", methods=["POST"])
+    def create_community_thread():
+        data = request.get_json(silent=True) or {}
+
+        try:
+            user_id = int(data.get("user_id"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "user_id is required"}), 400
+
+        user = db.session.get(User, user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        category = str(data.get("category", "")).strip().lower()
+        if category not in THREAD_CATEGORIES:
+            return jsonify({"error": "Invalid category"}), 400
+
+        title = str(data.get("title", "")).strip()
+        content = str(data.get("content", "")).strip()
+        if not title or not content:
+            return jsonify({"error": "title and content are required"}), 400
+
+        rating = None
+        if category == "company-ratings":
+            try:
+                rating = int(data.get("rating"))
+            except (TypeError, ValueError):
+                rating = None
+
+            if rating is None or rating < 1 or rating > 5:
+                return jsonify({"error": "rating must be between 1 and 5"}), 400
+
+        thread = CommunityThread(
+            user_id=user_id,
+            category=category,
+            title=title,
+            content=content,
+            rating=rating,
+        )
+        db.session.add(thread)
+        db.session.commit()
+        return jsonify(return_thread_author(thread)), 201
+
+    # Returns a single thread with author name
+    @app.route("/api/community/threads/<int:thread_id>", methods=["GET"])
+    def get_community_thread(thread_id: int):
+        thread = db.get_or_404(CommunityThread, thread_id)
+        return jsonify(return_thread_author(thread))
+
+    # Retrieve replies for a thread
+    @app.route("/api/community/threads/<int:thread_id>/replies", methods=["GET"])
+    def get_thread_replies(thread_id: int):
+        db.get_or_404(CommunityThread, thread_id)
+        replies = (
+            ThreadReply.query
+            .filter_by(thread_id=thread_id)
+            .order_by(ThreadReply.created_at.asc())
+            .all()
+        )
+        return jsonify([return_author(reply) for reply in replies])
+
+    # Send reply to a thread
+    @app.route("/api/community/threads/<int:thread_id>/replies", methods=["POST"])
+    def create_thread_reply(thread_id: int):
+        thread = db.get_or_404(CommunityThread, thread_id)
+        data = request.get_json(silent=True) or {}
+
+        try:
+            user_id = int(data.get("user_id"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "user_id is required"}), 400
+
+        user = db.session.get(User, user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        content = str(data.get("content", "")).strip()
+        if not content:
+            return jsonify({"error": "content is required"}), 400
+
+        reply = ThreadReply(thread_id=thread.id, user_id=user_id, content=content)
+        db.session.add(reply)
+
+        # Bump thread ordering so active threads surface first.
+        thread.updated_at = datetime.utcnow()
+
+        db.session.commit()
+        return jsonify(return_author(reply)), 201
     
     # GET /api/stats
     @app.route("/api/stats", methods=["GET"])
@@ -569,6 +690,11 @@ def create_app(db_url: str = None) -> Flask:
         if not bcrypt.checkpw(password.encode(), user.password_hash.encode()):
             return jsonify({"error": "Invalid password"}), 401
 
+        user_thread_ids = [row[0] for row in db.session.query(CommunityThread.id).filter_by(user_id=user.id).all()]
+        if user_thread_ids:
+            ThreadReply.query.filter(ThreadReply.thread_id.in_(user_thread_ids)).delete(synchronize_session=False)
+        ThreadReply.query.filter_by(user_id=user.id).delete()
+        CommunityThread.query.filter_by(user_id=user.id).delete()
         TrackerEntry.query.filter_by(user_id=user.id).delete()
         UserProfile.query.filter_by(user_id=user.id).delete()
         db.session.delete(user)
