@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import technicalCvTemplate from '../../assets/cv-templates/Tracker.dev-Techncial-CV-Template-.docx'
 import nonTechnicalCvTemplate from '../../assets/cv-templates/Tracker.dev-Non-Techncial-CV-Template-.docx'
 
@@ -27,6 +28,7 @@ export default function CvTemplates() {
           <a
             href={technicalCvTemplate}
             download="tracker.dev-technical-cv-template.docx"
+            onClick={() => toast.success('Technical CV download started.')}
             className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
             Technical CV
@@ -35,6 +37,7 @@ export default function CvTemplates() {
           <a
             href={nonTechnicalCvTemplate}
             download="tracker.dev-non-technical-cv-template.docx"
+            onClick={() => toast.success('Non-technical CV download started.')}
             className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
             Non-Technical CV

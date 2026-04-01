@@ -491,6 +491,7 @@ def create_app(db_url: str = None) -> Flask:
         thread = db.get_or_404(CommunityThread, thread_id)
         return jsonify(return_thread_author(thread))
 
+
     # Retrieve replies for a thread
     @app.route("/api/community/threads/<int:thread_id>/replies", methods=["GET"])
     def get_thread_replies(thread_id: int):
@@ -530,7 +531,7 @@ def create_app(db_url: str = None) -> Flask:
 
         db.session.commit()
         return jsonify(return_author(reply)), 201
-    
+
     # GET /api/stats
     @app.route("/api/stats", methods=["GET"])
     def get_stats():

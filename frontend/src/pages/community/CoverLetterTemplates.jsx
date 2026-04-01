@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import trackerDevCoverLetter from '../../assets/cover-letter-templates/tracker.dev-cover-letter.docx'
 
 export default function CoverLetterTemplates() {
@@ -26,6 +27,7 @@ export default function CoverLetterTemplates() {
           <a
             href={trackerDevCoverLetter}
             download="tracker.dev-cover-letter.docx"
+            onClick={() => toast.success('Cover letter download started.')}
             className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
             Cover Letter
