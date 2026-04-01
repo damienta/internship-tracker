@@ -491,6 +491,48 @@ def create_app(db_url: str = None) -> Flask:
         thread = db.get_or_404(CommunityThread, thread_id)
         return jsonify(return_thread_author(thread))
 
+    # Edit thread (owner only)
+    @app.route("/api/community/threads/<int:thread_id>", methods=["PATCH"])
+    def update_community_thread(thread_id: int):
+        thread = db.get_or_404(CommunityThread, thread_id)
+        data = request.get_json(silent=True) or {}
+
+        try:
+            user_id = int(data.get("user_id"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "user_id is required"}), 400
+
+        if thread.user_id != user_id:
+            return jsonify({"error": "Only the thread owner can edit this thread"}), 403
+
+        title = str(data.get("title", "")).strip()
+        content = str(data.get("content", "")).strip()
+        if not title or not content:
+            return jsonify({"error": "title and content are required"}), 400
+
+        thread.title = title
+        thread.content = content
+        thread.updated_at = datetime.utcnow()
+        db.session.commit()
+        return jsonify(return_thread_author(thread)), 200
+
+    # Delete thread (owner only)
+    @app.route("/api/community/threads/<int:thread_id>", methods=["DELETE"])
+    def delete_community_thread(thread_id: int):
+        thread = db.get_or_404(CommunityThread, thread_id)
+        user_id = request.args.get("user_id", type=int)
+
+        if not user_id:
+            return jsonify({"error": "user_id is required"}), 400
+
+        if thread.user_id != user_id:
+            return jsonify({"error": "Only the thread owner can delete this thread"}), 403
+
+        ThreadReply.query.filter_by(thread_id=thread.id).delete()
+        db.session.delete(thread)
+        db.session.commit()
+        return jsonify({"ok": True}), 200
+
 
     # Retrieve replies for a thread
     @app.route("/api/community/threads/<int:thread_id>/replies", methods=["GET"])
@@ -531,6 +573,44 @@ def create_app(db_url: str = None) -> Flask:
 
         db.session.commit()
         return jsonify(return_author(reply)), 201
+
+    # Edit reply (owner only)
+    @app.route("/api/community/replies/<int:reply_id>", methods=["PATCH"])
+    def update_thread_reply(reply_id: int):
+        reply = db.get_or_404(ThreadReply, reply_id)
+        data = request.get_json(silent=True) or {}
+
+        try:
+            user_id = int(data.get("user_id"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "user_id is required"}), 400
+
+        if reply.user_id != user_id:
+            return jsonify({"error": "Only the reply owner can edit this reply"}), 403
+
+        content = str(data.get("content", "")).strip()
+        if not content:
+            return jsonify({"error": "content is required"}), 400
+
+        reply.content = content
+        db.session.commit()
+        return jsonify(return_author(reply)), 200
+
+    # Delete reply (owner only)
+    @app.route("/api/community/replies/<int:reply_id>", methods=["DELETE"])
+    def delete_thread_reply(reply_id: int):
+        reply = db.get_or_404(ThreadReply, reply_id)
+        user_id = request.args.get("user_id", type=int)
+
+        if not user_id:
+            return jsonify({"error": "user_id is required"}), 400
+
+        if reply.user_id != user_id:
+            return jsonify({"error": "Only the reply owner can delete this reply"}), 403
+
+        db.session.delete(reply)
+        db.session.commit()
+        return jsonify({"ok": True}), 200
 
     # GET /api/stats
     @app.route("/api/stats", methods=["GET"])
