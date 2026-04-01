@@ -11,8 +11,8 @@ import Community from './pages/Community'
 import CvTemplates from './pages/community/CvTemplates'
 import CvExamples from './pages/community/CvExamples'
 import CoverLetterTemplates from './pages/community/CoverLetterTemplates'
+import CoverLetterExamples from './pages/community/CoverLetterExamples'
 import HowToGuides from './pages/community/HowToGuides'
-import CompanyRatings from './pages/community/CompanyRatings'
 import CommunityDiscussion from './pages/community/CommunityDiscussion'
 import Settings from './pages/Settings'
 import Login from './pages/Login'
@@ -84,8 +84,8 @@ function App() {
           <Route path="/community/cv-templates" element={<PrivateRoute><CvTemplates /></PrivateRoute>} />
           <Route path="/community/cv-examples" element={<PrivateRoute><CvExamples /></PrivateRoute>} />
           <Route path="/community/cover-letter-templates" element={<PrivateRoute><CoverLetterTemplates /></PrivateRoute>} />
+          <Route path="/community/cover-letter-examples" element={<PrivateRoute><CoverLetterExamples /></PrivateRoute>} />
           <Route path="/community/how-to-guides" element={<PrivateRoute><HowToGuides /></PrivateRoute>} />
-          <Route path="/community/company-ratings" element={<PrivateRoute><CompanyRatings /></PrivateRoute>} />
           <Route path="/community/discussion" element={<PrivateRoute><CommunityDiscussion /></PrivateRoute>} />
           <Route path="/contact-us" element={<PrivateRoute><Contact /></PrivateRoute>} />
           <Route path="*" element={<NotFound />} />

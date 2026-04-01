@@ -13,7 +13,7 @@ export default function CvTemplates() {
         {'< Back to Community'}
       </Link>
 
-      <h1 className="text-3xl font-bold text-slate-900">CV Templates</h1>
+      <h1 className="text-3xl font-bold text-slate-900">CV Templates and Examples</h1>
       <p className="mt-2 text-slate-600">
         Download a ready-to-edit CV template in Word format based on the role type you are applying for.
       </p>
@@ -21,7 +21,7 @@ export default function CvTemplates() {
       <section className="mt-6 bg-white border border-slate-200 rounded-xl p-6">
         <h2 className="text-lg font-semibold text-slate-900">Choose a template</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Click a button below to download a .docx template directly.
+          Download a template below in .docx format and tailor it for your target role.
         </p>
 
         <div className="mt-5 flex flex-wrap gap-3">
@@ -43,6 +43,13 @@ export default function CvTemplates() {
             Non-Technical CV
           </a>
         </div>
+      </section>
+
+      <section className="mt-6 bg-white border border-slate-200 rounded-xl p-6">
+        <h2 className="text-lg font-semibold text-slate-900">View some examples</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Use these examples as structure references, then discuss what works for different companies in Community Discussion.
+        </p>
       </section>
     </div>
   )
