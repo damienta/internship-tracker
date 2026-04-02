@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import trackerDevCoverLetter from '../../assets/cover-letter-templates/tracker.dev-cover-letter.docx'
+import trackerDevCoverLetterExample from '../../assets/cover-letter-example/tracker.dev-Cover-Letter-Example.docx'
 
 export default function CoverLetterTemplates() {
   return (
@@ -40,6 +41,17 @@ export default function CoverLetterTemplates() {
         <p className="mt-1 text-sm text-slate-600">
           Review example cover letters for tone and structure, then discuss company-specific improvements in Community Discussion.
         </p>
+
+        <div className="mt-5 flex flex-wrap gap-3">
+          <a
+            href={trackerDevCoverLetterExample}
+            download="tracker.dev-Cover-Letter-Example.docx"
+            onClick={() => toast.success('Cover letter example download started.')}
+            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Cover Letter Example
+          </a>
+        </div>
       </section>
     </div>
   )
