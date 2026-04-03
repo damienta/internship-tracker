@@ -51,6 +51,7 @@ export default function Settings() {
     university: '',
     degree: '',
     skills: [],
+    weekly_digest_enabled: false,
   })
 
   const [skillsInput, setSkillsInput] = useState('')
@@ -68,16 +69,44 @@ export default function Settings() {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false)
   const [showIdentityModal, setShowIdentityModal] = useState(false)
+  const [showDigestPreviewModal, setShowDigestPreviewModal] = useState(false)
+  const [digestFrequencyDays, setDigestFrequencyDays] = useState('7')
+  const [digestLoading, setDigestLoading] = useState(false)
+  const [digestPreview, setDigestPreview] = useState({ newest_opportunities: [], top_matches: [] })
   const [identityForm, setIdentityForm] = useState({
     username: '',
     email: '',
     current_password: '',
   })
 
+  const loadDigestPreview = async (targetUserId) => {
+    if (!targetUserId) return
+    setDigestLoading(true)
+    try {
+      const { data } = await api.get(`/digest/weekly/${targetUserId}`)
+      setDigestPreview({
+        newest_opportunities: Array.isArray(data?.newest_opportunities) ? data.newest_opportunities : [],
+        top_matches: Array.isArray(data?.top_matches) ? data.top_matches : [],
+      })
+    } catch {
+      toast.error('Error: Failed to load digest preview.')
+      setDigestPreview({ newest_opportunities: [], top_matches: [] })
+    } finally {
+      setDigestLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (!user?.id) {
       setLoading(false)
       return
+    }
+
+    const savedFrequency = localStorage.getItem(`digest_frequency_days_${user.id}`)
+    if (savedFrequency && ['1', '3', '7', '14'].includes(savedFrequency)) {
+      setDigestFrequencyDays(savedFrequency)
+    } else {
+      setDigestFrequencyDays('7')
     }
 
     const loadSettings = async () => {
@@ -101,6 +130,7 @@ export default function Settings() {
           ...prev,
           ...profileData,
           skills: Array.isArray(profileData.skills) ? profileData.skills : [],
+          weekly_digest_enabled: Boolean(profileData.weekly_digest_enabled),
         }))
         updateUser({
           username: profileRes?.data?.username || user?.username,
@@ -136,6 +166,20 @@ export default function Settings() {
     toast.success('Skill added to your profile list.')
   }
 
+  const handleDigestToggle = async (enabled) => {
+    setProfile((prev) => ({ ...prev, weekly_digest_enabled: enabled }))
+    if (enabled) {
+      await loadDigestPreview(user?.id)
+      setShowDigestPreviewModal(true)
+    }
+  }
+
+  const handleDigestFrequencyChange = async (value) => {
+    setDigestFrequencyDays(value)
+    await loadDigestPreview(user?.id)
+    setShowDigestPreviewModal(true)
+  }
+
   const saveProfile = async () => {
     if (!user?.id) return
     setSaving(true)
@@ -152,6 +196,7 @@ export default function Settings() {
         university: profile.university,
         degree: profile.degree,
         skills: parsedSkills,
+        weekly_digest_enabled: Boolean(profile.weekly_digest_enabled),
       }
 
       const { data } = await api.put(`/profile/${user.id}`, payload)
@@ -161,8 +206,10 @@ export default function Settings() {
         ...prev,
         ...savedProfile,
         skills: Array.isArray(savedProfile.skills) ? savedProfile.skills : [],
+        weekly_digest_enabled: Boolean(savedProfile.weekly_digest_enabled),
       }))
       setSkillsInput((Array.isArray(savedProfile.skills) ? savedProfile.skills : []).join(', '))
+      localStorage.setItem(`digest_frequency_days_${user.id}`, digestFrequencyDays)
 
       toast.success('Settings saved.')
     } catch (err) {
@@ -388,10 +435,33 @@ export default function Settings() {
 
       <section className="bg-white border border-gray-200 rounded-xl p-5">
         <h2 className="text-lg font-semibold text-gray-900 mb-1">Notifications</h2>
-        <p className="text-sm text-gray-500">
-          Planned notification ideas: email notifications for new matching opportunities, deadline reminders,
-          tracker stage updates, and account security alerts.
-        </p>
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-3">
+          <p className="text-sm font-semibold text-slate-900">Enable digest</p>
+          <label className="inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              checked={Boolean(profile.weekly_digest_enabled)}
+              onChange={(e) => handleDigestToggle(e.target.checked)}
+            />
+          </label>
+        </div>
+
+        {profile.weekly_digest_enabled ? (
+          <div className="mt-4 rounded-lg border border-slate-200 p-3">
+            <label className={labelClass}>Digest Frequency</label>
+            <select
+              className={inputClass}
+              value={digestFrequencyDays}
+              onChange={(e) => handleDigestFrequencyChange(e.target.value)}
+            >
+              <option value="1">Every 1 day</option>
+              <option value="3">Every 3 days</option>
+              <option value="7">Every 7 days</option>
+              <option value="14">Every 14 days</option>
+            </select>
+          </div>
+        ) : null}
       </section>
 
       <section className="bg-white border border-gray-200 rounded-xl p-5">
@@ -539,6 +609,66 @@ export default function Settings() {
                 onClick={deleteAccount}
               >
                 Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDigestPreviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-xl bg-white rounded-xl border border-gray-200 p-5">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Digest Preview</h3>
+            <p className="text-sm text-gray-600 mb-4">This is a preview only for MVP. No email is being sent.</p>
+
+            <div className="mb-4 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 border border-blue-100">
+              Every {digestFrequencyDays} day{digestFrequencyDays === '1' ? '' : 's'}
+            </div>
+
+            {digestLoading ? (
+              <p className="text-sm text-slate-500">Loading preview...</p>
+            ) : (
+              <div className="space-y-3">
+                <div className="rounded-lg border border-slate-200 p-3">
+                  <p className="text-sm font-semibold text-slate-900">Most Recent Opportunities</p>
+                  {digestPreview.newest_opportunities.length === 0 ? (
+                    <p className="mt-2 text-xs text-slate-500">No recent opportunities found in the last 7 days.</p>
+                  ) : (
+                    <ul className="mt-2 text-sm text-slate-700 space-y-2">
+                      {digestPreview.newest_opportunities.slice(0, 5).map((job) => (
+                        <li key={job.id}>
+                          {job.title} - {job.company}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div className="rounded-lg border border-slate-200 p-3">
+                  <p className="text-sm font-semibold text-slate-900">Top Matches For You</p>
+                  {digestPreview.top_matches.length === 0 ? (
+                    <p className="mt-2 text-xs text-slate-500">No skill matches yet. Add skills to improve recommendations.</p>
+                  ) : (
+                    <ul className="mt-2 text-sm text-slate-700 space-y-2">
+                      {digestPreview.top_matches.slice(0, 5).map((job) => (
+                        <li key={job.id}>
+                          {job.title} - {job.company}
+                          <p className="text-xs text-blue-700 mt-1">Why match: {job.why_match}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                className="px-3 py-2 text-sm rounded-lg border border-gray-300 hover:bg-gray-50"
+                onClick={() => setShowDigestPreviewModal(false)}
+              >
+                Close
               </button>
             </div>
           </div>

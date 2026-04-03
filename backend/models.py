@@ -42,6 +42,7 @@ class UserProfile(db.Model):
     university = db.Column(db.String(160))
     degree = db.Column(db.String(160))
     skills = db.Column(db.JSON, default=list)
+    weekly_digest_enabled = db.Column(db.Boolean, default=False, nullable=False)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -53,6 +54,7 @@ class UserProfile(db.Model):
             'university': self.university,
             'degree': self.degree,
             'skills': self.skills or [],
+            'weekly_digest_enabled': bool(self.weekly_digest_enabled),
         }
 
 class Internship(db.Model):
