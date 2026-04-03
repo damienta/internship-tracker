@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import client from '../api/client'
 import JobCard from '../components/JobCard'
+import { useAuth } from '../context/AuthContext'
 
 // Input box tailwind.css
 const inputClass = 'border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -24,6 +25,7 @@ function getErrorMessage(error) {
 
 //Main component state
 export default function Opportunities() {
+  const { user } = useAuth()
   const [jobs, setJobs] = useState([])
   const [meta, setMeta] = useState({ page: 1, pages: 1, total: 0 })
   const [loading, setLoading] = useState(true) // Initial loading state
@@ -32,6 +34,7 @@ export default function Opportunities() {
   const [filters, setFilters] = useState({ keyword: '', company: '', location: '', role_type: '', sort: '' }) // Applied filters sent to API
   const [draftFilters, setDraftFilters] = useState({ keyword: '', company: '', location: '', role_type: '', sort: '' }) // Filters being edited by the user
   const [page, setPage] = useState(1)
+  const [hasShownNoSkillsPrompt, setHasShownNoSkillsPrompt] = useState(false)
 
   useEffect(() => { // Timeout 350ms after user stops typing to apply filters, to avoid excessive API calls
     const timeoutId = setTimeout(() => {
@@ -48,6 +51,9 @@ export default function Opportunities() {
       setError('')
       try {
         const params = { page, per_page: 20, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) }
+        if (params.sort === 'match' && user?.id) {
+          params.user_id = user.id
+        }
         const { data } = await client.get('/jobs', { params })
         setJobs(data.results)
         setMeta({ page: data.page, pages: data.pages, total: data.total })
@@ -62,6 +68,31 @@ export default function Opportunities() {
     }
     fetchJobs()
   }, [filters, page])
+
+  useEffect(() => {
+    if (draftFilters.sort !== 'match') {
+      setHasShownNoSkillsPrompt(false)
+      return
+    }
+
+    if (!user?.id || hasShownNoSkillsPrompt) return
+
+    const checkSkillsForMatchSort = async () => {
+      try {
+        const { data } = await client.get(`/profile/${user.id}`)
+        const savedSkills = Array.isArray(data?.profile?.skills) ? data.profile.skills : []
+        if (savedSkills.length === 0) {
+          toast.error('Add skills in Settings to get "Most Relevant" matches.')
+          setHasShownNoSkillsPrompt(true)
+          setDraftFilters((prev) => ({ ...prev, sort: '' }))
+        }
+      } catch {
+        // Ignore profile check errors and allow opportunities fetch to proceed normally.
+      }
+    }
+
+    checkSkillsForMatchSort()
+  }, [draftFilters.sort, user?.id, hasShownNoSkillsPrompt])
 
   const handleFilter = (e) => {
     setDraftFilters({ ...draftFilters, [e.target.name]: e.target.value })
@@ -103,8 +134,9 @@ export default function Opportunities() {
         </select>
         <select className={inputClass} name="sort" value={draftFilters.sort} onChange={handleFilter}>
           <option value="">Sort by</option>
-          <option value="recent">Recently Opened</option>
           <option value="deadline">Closing Deadline</option>
+          <option value="match">Most Relevant</option>
+          <option value="recent">Recently Opened</option>
         </select>
         <button
           type="button"

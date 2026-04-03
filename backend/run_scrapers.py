@@ -6,7 +6,7 @@ Usage
 Run once manually:
     python run_scrapers.py
 
-Run on a schedule (every 24 hours - keeps running, Ctrl+C to stop):
+Run on a schedule (recommended every 12 hours - keeps running, Ctrl+C to stop):
     python run_scrapers.py --schedule
 
 The `schedule` library (already in requirements.txt) handles the timing.
@@ -286,13 +286,13 @@ def main():
     parser.add_argument(
         "--schedule",
         action="store_true",
-        help="Keep running and scrape every 24 hours instead of running once",
+        help="Keep running and scrape every 12 hours instead of running once",
     )
     parser.add_argument(
         "--interval",
         type=int,
-        default=24,
-        help="Hours between scrape runs when --schedule is used (default: 24)",
+        default=12,
+        help="Hours between scrape runs when --schedule is used (default: 12)",
     )
     args = parser.parse_args()
 

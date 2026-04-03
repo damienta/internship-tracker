@@ -26,7 +26,8 @@ Query parameters for GET /api/jobs:
     role_type - filter by role type inferred from title:
                   intern / internship / graduate / grad / junior / placement / apprentice
     skills    - filter by a skill stored in extracted_skills, e.g. ?skills=python
-    sort      - sorting mode: scraped (default), recent, or deadline
+    sort      - sorting mode: scraped (default), recent, deadline, or match
+    user_id   - required when sort=match to rank by the user's profile skills
     page      - page number (default 1)
     per_page  - results per page (default 20, max 100)
 """
@@ -109,6 +110,44 @@ def clean_list_of_strings(values):
         seen.add(key)
         normalized.append(item)
     return normalized
+
+
+def _normalize_skill_set(values):
+    normalized = set()
+    for raw in values or []:
+        clean = str(raw).strip().lower()
+        if clean:
+            normalized.add(clean)
+    return normalized
+
+
+def get_relevant_jobs_for_user(user_id: int, jobs):
+    """Return jobs sorted by skill relevance for a user, with match metadata."""
+    profile = ensure_user_profile(user_id)
+    user_skills = _normalize_skill_set(profile.skills)
+
+    ranked = []
+    for job in jobs or []:
+        job_skills = _normalize_skill_set(job.extracted_skills)
+        matched = sorted(user_skills.intersection(job_skills))
+        matched_pretty = ", ".join(matched)
+        why_match = (
+            f"Matched skills: {matched_pretty} ({len(matched)} match(es))."
+            if matched
+            else "No direct skill overlap found."
+        )
+        ranked.append({
+            "job": job,
+            "match_count": len(matched),
+            "matched_skills": matched,
+            "why_match": why_match,
+        })
+
+    ranked.sort(
+        key=lambda item: (item["match_count"], item["job"].scraped_at or datetime.min),
+        reverse=True,
+    )
+    return ranked
 
 
 def ensure_user_profile(user_id: int) -> UserProfile:
@@ -198,6 +237,35 @@ def create_app(db_url: str = None) -> Flask:
             per_page = min(100, max(1, int(request.args.get("per_page", 20))))
         except (ValueError, TypeError):
             page, per_page = 1, 20
+
+        if sort == "match":
+            user_id = request.args.get("user_id", type=int)
+            if not user_id:
+                return jsonify({"error": "user_id is required for sort=match"}), 400
+
+            user = db.session.get(User, user_id)
+            if not user:
+                return jsonify({"error": "User not found"}), 404
+
+            ranked = get_relevant_jobs_for_user(user_id, query.all())
+            total = len(ranked)
+            page_items = ranked[(page - 1) * per_page : page * per_page]
+
+            results = []
+            for item in page_items:
+                payload = item["job"].to_dict()
+                payload["match_count"] = item["match_count"]
+                payload["matched_skills"] = item["matched_skills"]
+                payload["why_match"] = item["why_match"]
+                results.append(payload)
+
+            return jsonify({
+                "page": page,
+                "per_page": per_page,
+                "total": total,
+                "pages": (total + per_page - 1) // per_page,
+                "results": results,
+            })
 
         if sort == "deadline":
             # Closest deadline first.
