@@ -83,7 +83,7 @@ export default function Home() {
     <div className="max-w-7xl mx-auto px-6 py-10">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Home</h1>
-        <p className="text-gray-500 text-sm">Top opportunities and quick deadline tracking.</p>
+        <p className="text-gray-500 text-sm">Top opportunities and deadline tracking.</p>
       </div>
 
       {loading ? (

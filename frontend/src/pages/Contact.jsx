@@ -1,6 +1,6 @@
 export default function Contact() {
   return (
-    <div className="max-w-3xl mx-auto px-6 py-10">
+    <div className="max-w-5xl mx-auto px-6 py-10">
       <h1 className="text-3xl font-bold text-slate-900">Contact Me</h1>
       <p className="mt-2 text-sm text-slate-600">
         Questions, website feedback, and collaboration ideas are always welcome.

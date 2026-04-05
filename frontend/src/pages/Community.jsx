@@ -28,7 +28,7 @@ export default function Community() {
     <div className="max-w-5xl mx-auto px-6 py-10">
       <h1 className="text-3xl font-bold text-slate-900">Community</h1>
       <p className="mt-2 text-sm text-slate-600">
-        Community and career toolkit hub for templates, examples, and company-focused discussion.
+        Community and career hub for templates, examples, and company-focused discussion.
       </p>
 
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">

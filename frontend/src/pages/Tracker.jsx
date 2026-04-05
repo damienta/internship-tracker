@@ -338,7 +338,7 @@ export default function Tracker() {
     <div className="w-full px-4 md:px-6 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Tracker</h1>
-        <p className="text-gray-500 text-sm">Status can be updated for saved entries.</p>
+        <p className="text-gray-500 text-sm">Track your applications and update progress as you move through each stage.</p>
       </div>
 
       <div className="mb-4 flex justify-start">
