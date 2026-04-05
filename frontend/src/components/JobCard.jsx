@@ -19,10 +19,16 @@ function formatDate(value) {
 export default function JobCard({
   job,
   showApply = true,
+  showAddToTracker = false,
+  onAddToTracker = null,
+  addToTrackerDisabled = false,
+  addToTrackerLoading = false,
   showDateChips = true,
   showSkills = true,
   compact = false,
 }) {
+  const addButtonLabel = addToTrackerLoading ? 'Adding...' : (addToTrackerDisabled ? 'Added' : 'Add to Tracker')
+
   return (
     <div className={`bg-white border border-gray-200 rounded-xl flex flex-col ${compact ? 'p-3 gap-1.5' : 'p-5 gap-2'}`}>
       <div className={`flex items-start justify-between ${compact ? 'gap-3' : 'gap-4'}`}>
@@ -31,7 +37,29 @@ export default function JobCard({
           <p className={`text-gray-500 ${compact ? 'text-xs' : 'text-sm'}`}>{job.company}</p>
         </div>
 
-        {showApply && (
+        {showAddToTracker ? (
+          <div className={`shrink-0 flex items-center ${compact ? 'gap-1.5' : 'gap-2'}`}>
+            {showApply && (
+              <a
+                href={job.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors ${compact ? 'text-xs px-3 py-1' : 'text-sm px-4 py-1.5'}`}
+              >
+                Apply
+              </a>
+            )}
+
+            <button
+              type="button"
+              onClick={onAddToTracker}
+              disabled={addToTrackerDisabled || addToTrackerLoading}
+              className={`rounded-lg transition-colors disabled:cursor-not-allowed ${compact ? 'text-xs px-3 py-1' : 'text-sm px-4 py-1.5'} ${addToTrackerDisabled ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-gray-600 text-white hover:bg-gray-700'}`}
+            >
+              {addButtonLabel}
+            </button>
+          </div>
+        ) : showApply ? (
           <a
             href={job.url}
             target="_blank"
@@ -40,7 +68,7 @@ export default function JobCard({
           >
             Apply
           </a>
-        )}
+        ) : null}
       </div>
 
       <div className={`flex flex-wrap text-gray-500 ${compact ? 'gap-1.5 text-[11px]' : 'gap-2 text-xs'}`}>

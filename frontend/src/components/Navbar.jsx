@@ -24,12 +24,12 @@ export default function Navbar() {
         </Link>
 
         <div className="flex gap-6">
-          <NavLink to="/" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Home</NavLink>
-          <NavLink to="/opportunities" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Opportunities</NavLink>
-          <NavLink to="/tracker" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Tracker</NavLink>
-          <NavLink to="/community" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Community</NavLink>
-          <NavLink to="/about" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>About</NavLink>
-          <NavLink to="/contact-us" className={({ isActive }) => isActive ? 'text-blue-600 text-sm font-semibold hover:text-blue-700' : 'text-gray-600 text-sm hover:text-gray-900'}>Contact Me</NavLink>
+          <NavLink to="/" className={({ isActive }) => isActive ? 'text-blue-600 text-base font-semibold hover:text-blue-700' : 'text-gray-600 text-base hover:text-gray-900'}>Home</NavLink>
+          <NavLink to="/opportunities" className={({ isActive }) => isActive ? 'text-blue-600 text-base font-semibold hover:text-blue-700' : 'text-gray-600 text-base hover:text-gray-900'}>Opportunities</NavLink>
+          <NavLink to="/tracker" className={({ isActive }) => isActive ? 'text-blue-600 text-base font-semibold hover:text-blue-700' : 'text-gray-600 text-base hover:text-gray-900'}>Tracker</NavLink>
+          <NavLink to="/community" className={({ isActive }) => isActive ? 'text-blue-600 text-base font-semibold hover:text-blue-700' : 'text-gray-600 text-base hover:text-gray-900'}>Community</NavLink>
+          <NavLink to="/about" className={({ isActive }) => isActive ? 'text-blue-600 text-base font-semibold hover:text-blue-700' : 'text-gray-600 text-base hover:text-gray-900'}>About</NavLink>
+          <NavLink to="/contact-us" className={({ isActive }) => isActive ? 'text-blue-600 text-base font-semibold hover:text-blue-700' : 'text-gray-600 text-base hover:text-gray-900'}>Contact Me</NavLink>
         </div>
 
         <div className="flex items-center gap-3">
@@ -51,7 +51,7 @@ export default function Navbar() {
           </Link>
           <button
             onClick={handleLogout}
-            className="text-sm font-medium text-red-700 border border-red-200 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100"
+            className="text-sm font-medium text-white border border-red-600 bg-red-600 px-3 py-1.5 rounded-lg hover:bg-red-700"
           >
             Log out
           </button>

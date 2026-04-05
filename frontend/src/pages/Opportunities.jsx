@@ -27,6 +27,8 @@ function getErrorMessage(error) {
 export default function Opportunities() {
   const { user } = useAuth()
   const [jobs, setJobs] = useState([])
+  const [trackedInternshipIds, setTrackedInternshipIds] = useState(new Set())
+  const [addingInternshipIds, setAddingInternshipIds] = useState(new Set())
   const [meta, setMeta] = useState({ page: 1, pages: 1, total: 0 })
   const [loading, setLoading] = useState(true) // Initial loading state
   const [isFetching, setIsFetching] = useState(false)
@@ -94,6 +96,29 @@ export default function Opportunities() {
     checkSkillsForMatchSort()
   }, [draftFilters.sort, user?.id, hasShownNoSkillsPrompt])
 
+  useEffect(() => {
+    if (!user?.id) {
+      setTrackedInternshipIds(new Set())
+      return
+    }
+
+    const fetchTrackerEntries = async () => {
+      try {
+        const { data } = await client.get('/tracker', { params: { user_id: user.id } })
+        const ids = new Set(
+          (Array.isArray(data) ? data : [])
+            .map((entry) => entry.internship_id)
+            .filter((id) => Number.isInteger(id))
+        )
+        setTrackedInternshipIds(ids)
+      } catch {
+        // Ignore tracker prefetch errors and keep add action available.
+      }
+    }
+
+    fetchTrackerEntries()
+  }, [user?.id])
+
   const handleFilter = (e) => {
     setDraftFilters({ ...draftFilters, [e.target.name]: e.target.value })
   }
@@ -103,6 +128,41 @@ export default function Opportunities() {
     setDraftFilters(emptyFilters)
     setFilters(emptyFilters)
     setPage(1)
+  }
+
+  const addToTracker = async (job) => {
+    if (!user?.id) {
+      toast.error('Please log in to add opportunities to tracker.')
+      return
+    }
+
+    if (trackedInternshipIds.has(job.id)) {
+      return
+    }
+
+    setAddingInternshipIds((prev) => new Set(prev).add(job.id))
+    try {
+      await client.post('/tracker/from-opportunity', {
+        user_id: user.id,
+        internship_id: job.id,
+      })
+      setTrackedInternshipIds((prev) => new Set(prev).add(job.id))
+      toast.success('Added to tracker.')
+    } catch (err) {
+      if (err?.response?.status === 409) {
+        setTrackedInternshipIds((prev) => new Set(prev).add(job.id))
+        toast('Already added to tracker.')
+      } else {
+        const message = err?.response?.data?.error || 'Could not add to tracker.'
+        toast.error(`Error: ${message}`)
+      }
+    } finally {
+      setAddingInternshipIds((prev) => {
+        const next = new Set(prev)
+        next.delete(job.id)
+        return next
+      })
+    }
   }
 
   return (
@@ -156,7 +216,16 @@ export default function Opportunities() {
         <p className="text-gray-400 text-sm">No listings match your filters.</p>
       ) : (
         <div className="flex flex-col gap-3">
-          {jobs.map(job => <JobCard key={job.id} job={job} />)}
+          {jobs.map((job) => (
+            <JobCard
+              key={job.id}
+              job={job}
+              showAddToTracker
+              onAddToTracker={() => addToTracker(job)}
+              addToTrackerDisabled={trackedInternshipIds.has(job.id)}
+              addToTrackerLoading={addingInternshipIds.has(job.id)}
+            />
+          ))}
         </div>
       )}
 

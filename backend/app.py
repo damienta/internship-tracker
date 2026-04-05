@@ -39,7 +39,8 @@ from datetime import datetime, date, timedelta
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token
-from sqlalchemy import func, text
+from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from models import db, Internship, User, UserProfile, TrackerEntry, CommunityThread, ThreadReply
 from scraper.skills import SKILLS
 from dotenv import load_dotenv
@@ -200,7 +201,7 @@ def is_valid_email(value: str) -> bool:
 def create_app(db_url: str = None) -> Flask:
     """
     Application factory.
-    Creates Flask app, binds SQLAlchemy, creates all tables, registers routes.
+    Creates Flask app, binds SQLAlchemy, registers routes.
     """
     app = Flask(__name__)
     CORS(app)  # Allow cross-origin requests from the frontend
@@ -215,17 +216,6 @@ def create_app(db_url: str = None) -> Flask:
 
     db.init_app(app)
     JWTManager(app)
-
-    with app.app_context():
-        db.create_all()
-        # Ensure existing local DBs gain the weekly digest flag without manual migration.
-        inspector = db.inspect(db.engine)
-        profile_columns = {col["name"] for col in inspector.get_columns("user_profiles")}
-        if "weekly_digest_enabled" not in profile_columns:
-            db.session.execute(
-                text("ALTER TABLE user_profiles ADD COLUMN weekly_digest_enabled BOOLEAN DEFAULT FALSE")
-            )
-            db.session.commit()
 
     # GET /api/jobs
     @app.route("/api/jobs", methods=["GET"])
@@ -402,6 +392,21 @@ def create_app(db_url: str = None) -> Flask:
         except (TypeError, ValueError):
             return jsonify({"error": "user_id is required"}), 400
 
+        internship_id = data.get("internship_id")
+        parsed_internship_id = None
+        if internship_id not in (None, ""):
+            try:
+                parsed_internship_id = int(internship_id)
+            except (TypeError, ValueError):
+                return jsonify({"error": "internship_id must be an integer"}), 400
+
+            if not db.session.get(Internship, parsed_internship_id):
+                return jsonify({"error": "Internship not found"}), 404
+
+            existing = TrackerEntry.query.filter_by(user_id=user_id, internship_id=parsed_internship_id).first()
+            if existing:
+                return jsonify({"error": "Opportunity already added to tracker", "entry": existing.to_dict()}), 409
+
         if status not in TRACKER_STATUSES:
             return jsonify({"error": "Invalid status"}), 400
 
@@ -429,6 +434,7 @@ def create_app(db_url: str = None) -> Flask:
 
         entry = TrackerEntry(
             user_id=user_id,
+            internship_id=parsed_internship_id,
             status=status,
             company_name=company,
             role=role,
@@ -438,8 +444,66 @@ def create_app(db_url: str = None) -> Flask:
             notes=str(data.get("notes", "")).strip() or None,
         )
 
-        db.session.add(entry)
-        db.session.commit()
+        try:
+            db.session.add(entry)
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            if parsed_internship_id is not None:
+                existing = TrackerEntry.query.filter_by(user_id=user_id, internship_id=parsed_internship_id).first()
+                return jsonify({"error": "Opportunity already added to tracker", "entry": existing.to_dict() if existing else None}), 409
+            return jsonify({"error": "Failed to create tracker entry"}), 400
+
+        return jsonify(entry.to_dict()), 201
+
+    # POST /api/tracker/from-opportunity
+    @app.route("/api/tracker/from-opportunity", methods=["POST"])
+    def create_tracker_entry_from_opportunity():
+        """Create a tracker entry from an existing opportunity only once per user."""
+        data = request.get_json(silent=True) or {}
+
+        try:
+            user_id = int(data.get("user_id"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "user_id is required"}), 400
+
+        try:
+            internship_id = int(data.get("internship_id"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "internship_id is required"}), 400
+
+        user = db.session.get(User, user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        internship = db.session.get(Internship, internship_id)
+        if not internship:
+            return jsonify({"error": "Internship not found"}), 404
+
+        existing = TrackerEntry.query.filter_by(user_id=user_id, internship_id=internship_id).first()
+        if existing:
+            return jsonify({"error": "Opportunity already added to tracker", "entry": existing.to_dict()}), 409
+
+        entry = TrackerEntry(
+            user_id=user_id,
+            internship_id=internship.id,
+            status="Not Applied",
+            company_name=internship.company,
+            role=internship.title,
+            opening_date=internship.date_posted,
+            closing_date=internship.deadline,
+            link=internship.url,
+            notes=str(data.get("notes", "")).strip() or None,
+        )
+
+        try:
+            db.session.add(entry)
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            existing = TrackerEntry.query.filter_by(user_id=user_id, internship_id=internship_id).first()
+            return jsonify({"error": "Opportunity already added to tracker", "entry": existing.to_dict() if existing else None}), 409
+
         return jsonify(entry.to_dict()), 201
 
     # PATCH /api/tracker/<id>

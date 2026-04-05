@@ -118,9 +118,13 @@ class Internship(db.Model):
 class TrackerEntry(db.Model):
     """User-managed application tracker entries."""
     __tablename__ = 'tracker'
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'internship_id', name='uq_tracker_user_internship'),
+    )
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    internship_id = db.Column(db.Integer, db.ForeignKey('internships.id', ondelete='SET NULL'), nullable=True)
     status = db.Column(db.String(100), nullable=False, default='Not Applied')
     company_name = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(300), nullable=False)
@@ -135,6 +139,7 @@ class TrackerEntry(db.Model):
         return {
             'id': self.id,
             'user_id': self.user_id,
+            'internship_id': self.internship_id,
             'status': self.status,
             'company': self.company_name,
             'role': self.role,
