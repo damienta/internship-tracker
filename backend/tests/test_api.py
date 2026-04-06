@@ -84,16 +84,6 @@ def test_companies_no_duplicates(client):
     data = client.get("/api/companies").get_json()
     assert len(data) == len(set(data))
 
-# /api/sources
-
-def test_sources_returns_list(client):
-    data = client.get("/api/sources").get_json()
-    assert isinstance(data, list)
-
-def test_sources_no_duplicates(client):
-    data = client.get("/api/sources").get_json()
-    assert len(data) == len(set(data))
-
 # /api/jobs
 
 def test_jobs_returns_200(client):
@@ -151,9 +141,29 @@ def test_filter_role_type_graduate(client):
     data = client.get("/api/jobs?role_type=graduate").get_json()
     assert data["total"] >= 1
 
+def test_filter_source_lever_single_filter(client):
+    data = client.get("/api/jobs?source=lever").get_json()
+    assert data["total"] >= 1
+    assert all(j["source_website"] == "lever" for j in data["results"])
+
 def test_filter_no_match_returns_empty(client):
     data = client.get("/api/jobs?company=zzznonexistent").get_json()
     assert data["total"] == 0 and data["results"] == []
+
+def test_multi_filter_source_and_location(client):
+    data = client.get("/api/jobs?source=lever&location=London").get_json()
+    assert data["total"] >= 1
+    assert all(j["source_website"] == "lever" and "London" in (j.get("location") or "") for j in data["results"])
+
+def test_multi_filter_company_and_keyword(client):
+    data = client.get("/api/jobs?company=Alpha&keyword=Software").get_json()
+    assert data["total"] == 1
+    assert all("Alpha" in j["company"] and "software" in j["title"].lower() for j in data["results"])
+
+def test_multi_filter_role_type_and_location(client):
+    data = client.get("/api/jobs?role_type=graduate&location=London").get_json()
+    assert data["total"] >= 1
+    assert all("graduate" in j["title"].lower() and "London" in (j.get("location") or "") for j in data["results"])
 
 
 # /api/jobs/<id>

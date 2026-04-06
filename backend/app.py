@@ -8,7 +8,6 @@ Endpoints:
     GET /api/jobs/<id>      - single job by id
     GET /api/stats          - summary counts by source, company, role type
     GET /api/companies      - distinct list of companies in the database
-    GET /api/sources        - distinct list of sources in the database
     GET /api/skills         - full list of recognised skill keywords
     GET /api/profile/<user_id> - fetch profile settings for one user
     PUT /api/profile/<user_id> - create/update user profile settings

@@ -665,7 +665,7 @@ class BaseScraper:
             'a.pagination-next',
             'a[rel="next"]',
             'li.next a',
-            'a:contains("Next")',
+            'a:soup-contains("Next")',
             'button[aria-label*="next" i]'
         ]
         
