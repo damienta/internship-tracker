@@ -89,7 +89,9 @@ export default function Opportunities() {
           setDraftFilters((prev) => ({ ...prev, sort: '' }))
         }
       } catch {
-        // Ignore profile check errors and allow opportunities fetch to proceed normally.
+        toast.error('Error: Could not verify profile skills. Showing default sort.')
+        setHasShownNoSkillsPrompt(true)
+        setDraftFilters((prev) => ({ ...prev, sort: '' }))
       }
     }
 
@@ -112,7 +114,7 @@ export default function Opportunities() {
         )
         setTrackedInternshipIds(ids)
       } catch {
-        // Ignore tracker prefetch errors and keep add action available.
+        toast.error('Error: Could not load your tracker items. Add buttons may be less accurate.')
       }
     }
 

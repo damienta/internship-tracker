@@ -148,7 +148,9 @@ export default function Tracker() {
             : []
         )
       } catch {
-        setError('Failed to load tracker entries.')
+        const msg = 'Failed to load tracker entries.'
+        setError(msg)
+        toast.error(`Error: ${msg}`)
       } finally {
         setLoading(false)
       }
