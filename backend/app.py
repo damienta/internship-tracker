@@ -34,7 +34,7 @@ Query parameters for GET /api/jobs:
 import os
 import re
 import bcrypt
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token
@@ -148,38 +148,6 @@ def get_relevant_jobs_for_user(user_id: int, jobs):
         reverse=True,
     )
     return ranked
-
-
-def _build_weekly_digest_payload(user: User, profile: UserProfile):
-    since = datetime.utcnow() - timedelta(days=7)
-    recent_jobs = (
-        Internship.query
-        .filter(Internship.is_active.is_(True), Internship.scraped_at >= since)
-        .order_by(Internship.scraped_at.desc())
-        .limit(60)
-        .all()
-    )
-
-    ranked = get_relevant_jobs_for_user(user.id, recent_jobs)
-
-    newest_opportunities = [job.to_dict() for job in recent_jobs[:15]]
-    top_matches = []
-    for item in ranked[:10]:
-        payload = item["job"].to_dict()
-        payload["match_count"] = item["match_count"]
-        payload["matched_skills"] = item["matched_skills"]
-        payload["why_match"] = item["why_match"]
-        top_matches.append(payload)
-
-    return {
-        "user_id": user.id,
-        "email": user.email,
-        "weekly_digest_enabled": bool(profile.weekly_digest_enabled),
-        "digest_window_days": 7,
-        "generated_at": datetime.utcnow().isoformat(),
-        "newest_opportunities": newest_opportunities,
-        "top_matches": top_matches,
-    }
 
 
 def ensure_user_profile(user_id: int) -> UserProfile:
@@ -856,19 +824,9 @@ def create_app(db_url: str = None) -> Flask:
         profile.university = str(data.get("university", "")).strip() or None
         profile.degree = str(data.get("degree", "")).strip() or None
         profile.skills = clean_list_of_strings(data.get("skills", []))
-        if "weekly_digest_enabled" in data:
-            profile.weekly_digest_enabled = bool(data.get("weekly_digest_enabled"))
 
         db.session.commit()
         return jsonify({"profile": profile.to_dict()})
-
-    # GET /api/digest/weekly/<user_id>
-    @app.route("/api/digest/weekly/<int:user_id>", methods=["GET"])
-    def get_weekly_digest(user_id: int):
-        """Return a 7-day digest with newest opportunities and best skill matches."""
-        user = db.get_or_404(User, user_id)
-        profile = ensure_user_profile(user.id)
-        return jsonify(_build_weekly_digest_payload(user, profile))
 
     # PATCH /api/account/id
     @app.route("/api/account/id", methods=["PATCH"])
