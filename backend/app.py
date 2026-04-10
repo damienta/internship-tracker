@@ -993,5 +993,6 @@ def create_app(db_url: str = None) -> Flask:
 
 if __name__ == "__main__":
     flask_app = create_app()
-    flask_app.run(debug=True)
+    port = int(os.getenv("PORT", "5000"))
+    flask_app.run(host="0.0.0.0", port=port, debug=False)
 
