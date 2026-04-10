@@ -17,7 +17,7 @@ def test_lever_scraper_filters_and_returns_expected_items(monkeypatch):
     payload = [
         {
             "text": "Software Engineer Intern",
-            "categories": {"location": "London, UK"},
+            "categories": {"location": "London, UK", "allLocations": ["London, UK"]},
             "descriptionPlain": "Python and SQL",
             "hostedUrl": "https://jobs.example.com/1",
             "createdAt": 1700000000000,
@@ -25,7 +25,7 @@ def test_lever_scraper_filters_and_returns_expected_items(monkeypatch):
         },
         {
             "text": "Senior Engineer",
-            "categories": {"location": "London, UK"},
+            "categories": {"location": "London, UK", "allLocations": ["London, UK"]},
             "descriptionPlain": "Senior role",
             "hostedUrl": "https://jobs.example.com/2",
             "createdAt": 1700000000001,
@@ -33,7 +33,7 @@ def test_lever_scraper_filters_and_returns_expected_items(monkeypatch):
         },
         {
             "text": "Graduate Engineer",
-            "categories": {"location": "New York, US"},
+            "categories": {"location": "New York, US", "allLocations": ["New York, US"]},
             "descriptionPlain": "US role",
             "hostedUrl": "https://jobs.example.com/3",
             "createdAt": 1700000000002,
