@@ -184,6 +184,10 @@ def create_app(db_url: str = None) -> Flask:
     db.init_app(app)
     JWTManager(app)
 
+    # Ensure base tables exist in fresh environments (e.g. first Render deploy).
+    with app.app_context():
+        db.create_all()
+
     # GET /api/jobs
     @app.route("/api/jobs", methods=["GET"])
     def get_jobs():
