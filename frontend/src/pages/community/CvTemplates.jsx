@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import technicalCvTemplate from '../../assets/cv-templates/Tracker.dev-Techncial-CV-Template-.docx'
 import nonTechnicalCvTemplate from '../../assets/cv-templates/Tracker.dev-Non-Techncial-CV-Template-.docx'
+import trackerDevCvExample from '../../assets/cv-example/Tracker.dev-Example-CV.docx'
 
 export default function CvTemplates() {
   return (
@@ -50,6 +51,17 @@ export default function CvTemplates() {
         <p className="mt-1 text-sm text-slate-600">
           Use these examples as structure references, then discuss what works for different companies in Community Discussion.
         </p>
+
+        <div className="mt-5 flex flex-wrap gap-3">
+          <a
+            href={trackerDevCvExample}
+            download="tracker.dev-example-cv.docx"
+            onClick={() => toast.success('Tracker.dev CV example download started.')}
+            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            CV Example
+          </a>
+        </div>
       </section>
     </div>
   )
