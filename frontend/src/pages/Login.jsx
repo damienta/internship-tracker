@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
@@ -36,15 +36,16 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 w-full max-w-md">
 
-        {/* Logo */}
+        {/* Brand */}
         <div className="flex justify-center mb-6">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-            IT
+          <div className="flex items-center gap-2 font-semibold text-gray-900">
+            <span className="w-7 h-7 rounded bg-slate-800 text-white text-xs font-bold flex items-center justify-center">td</span>
+            tracker.dev
           </div>
         </div>
 
         <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">Welcome back</h1>
-        <p className="text-gray-500 text-sm text-center mb-6">Log in to your InternTracker account</p>
+        <p className="text-gray-500 text-sm text-center mb-6">Log in to your tracker.dev account</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
