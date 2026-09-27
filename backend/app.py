@@ -34,10 +34,16 @@ Query parameters for GET /api/jobs:
 import os
 import re
 import bcrypt
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager, create_access_token
+from flask_jwt_extended import (
+    JWTManager,
+    create_access_token,
+    get_jwt_identity,
+    jwt_required,
+    verify_jwt_in_request,
+)
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from models import db, Internship, User, UserProfile, TrackerEntry, CommunityThread, ThreadReply
@@ -165,6 +171,16 @@ def is_valid_email(value: str) -> bool:
     return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", value))
 
 
+def current_user_id() -> int:
+    """Return the logged-in user's id from their JWT (never trust a user_id sent by the client)."""
+    return int(get_jwt_identity())
+
+
+def session_expired(*_args):
+    """Response for a missing, invalid or expired token; the frontend logs the user out on this code."""
+    return jsonify({"error": "Please log in again", "code": "session_expired"}), 401
+
+
 def create_app(db_url: str = None) -> Flask:
     """
     Application factory.
@@ -180,9 +196,13 @@ def create_app(db_url: str = None) -> Flask:
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["SQLALCHEMY_ECHO"] = os.getenv("SQLALCHEMY_ECHO", "False") == "True"
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7)
 
     db.init_app(app)
-    JWTManager(app)
+    jwt = JWTManager(app)
+    jwt.unauthorized_loader(session_expired)
+    jwt.invalid_token_loader(session_expired)
+    jwt.expired_token_loader(session_expired)
 
     # Ensure base tables exist in fresh environments (e.g. first Render deploy).
     with app.app_context():
@@ -240,9 +260,8 @@ def create_app(db_url: str = None) -> Flask:
             page, per_page = 1, 20
 
         if sort == "match":
-            user_id = request.args.get("user_id", type=int)
-            if not user_id:
-                return jsonify({"error": "user_id is required for sort=match"}), 400
+            verify_jwt_in_request()
+            user_id = current_user_id()
 
             user = db.session.get(User, user_id)
             if not user:
@@ -333,11 +352,10 @@ def create_app(db_url: str = None) -> Flask:
 
     # GET /api/tracker
     @app.route("/api/tracker", methods=["GET"])
+    @jwt_required()
     def get_tracker_entries():
-        """Return all tracker entries, newest first."""
-        user_id = request.args.get("user_id", type=int)
-        if not user_id:
-            return jsonify({"error": "user_id is required"}), 400
+        """Return the logged-in user's tracker entries, newest first."""
+        user_id = current_user_id()
 
         entries = (
             TrackerEntry.query
@@ -349,6 +367,7 @@ def create_app(db_url: str = None) -> Flask:
 
     # POST /api/tracker
     @app.route("/api/tracker", methods=["POST"])
+    @jwt_required()
     def create_tracker_entry():
         """Create a tracker entry."""
         data = request.get_json(silent=True) or {}
@@ -356,12 +375,7 @@ def create_app(db_url: str = None) -> Flask:
         status = str(data.get("status", "Not Applied")).strip()
         company = str(data.get("company", "")).strip()
         role = str(data.get("role", "")).strip()
-        user_id = data.get("user_id")
-
-        try:
-            user_id = int(user_id)
-        except (TypeError, ValueError):
-            return jsonify({"error": "user_id is required"}), 400
+        user_id = current_user_id()
 
         internship_id = data.get("internship_id")
         parsed_internship_id = None
@@ -429,14 +443,11 @@ def create_app(db_url: str = None) -> Flask:
 
     # POST /api/tracker/from-opportunity
     @app.route("/api/tracker/from-opportunity", methods=["POST"])
+    @jwt_required()
     def create_tracker_entry_from_opportunity():
         """Create a tracker entry from an existing opportunity only once per user."""
         data = request.get_json(silent=True) or {}
-
-        try:
-            user_id = int(data.get("user_id"))
-        except (TypeError, ValueError):
-            return jsonify({"error": "user_id is required"}), 400
+        user_id = current_user_id()
 
         try:
             internship_id = int(data.get("internship_id"))
@@ -479,18 +490,13 @@ def create_app(db_url: str = None) -> Flask:
 
     # PATCH /api/tracker/<id>
     @app.route("/api/tracker/<int:entry_id>", methods=["PATCH"])
+    @jwt_required()
     def update_tracker_entry(entry_id: int):
         """Update editable fields on a tracker entry."""
         entry = db.get_or_404(TrackerEntry, entry_id)
         data = request.get_json(silent=True) or {}
 
-        user_id = data.get("user_id")
-        try:
-            user_id = int(user_id)
-        except (TypeError, ValueError):
-            return jsonify({"error": "user_id is required"}), 400
-
-        if entry.user_id != user_id:
+        if entry.user_id != current_user_id():
             return jsonify({"error": "Forbidden"}), 403
 
         if "status" in data:
@@ -540,15 +546,12 @@ def create_app(db_url: str = None) -> Flask:
 
     # DELETE /api/tracker/<id>
     @app.route("/api/tracker/<int:entry_id>", methods=["DELETE"])
+    @jwt_required()
     def delete_tracker_entry(entry_id: int):
         """Delete a tracker entry for the requesting user."""
         entry = db.get_or_404(TrackerEntry, entry_id)
-        user_id = request.args.get("user_id", type=int)
 
-        if not user_id:
-            return jsonify({"error": "user_id is required"}), 400
-
-        if entry.user_id != user_id:
+        if entry.user_id != current_user_id():
             return jsonify({"error": "Forbidden"}), 403
 
         db.session.delete(entry)
@@ -586,13 +589,10 @@ def create_app(db_url: str = None) -> Flask:
 
     # Adds a new thread
     @app.route("/api/community/threads", methods=["POST"])
+    @jwt_required()
     def create_community_thread():
         data = request.get_json(silent=True) or {}
-
-        try:
-            user_id = int(data.get("user_id"))
-        except (TypeError, ValueError):
-            return jsonify({"error": "user_id is required"}), 400
+        user_id = current_user_id()
 
         user = db.session.get(User, user_id)
         if not user:
@@ -636,16 +636,12 @@ def create_app(db_url: str = None) -> Flask:
 
     # Edit thread (owner only)
     @app.route("/api/community/threads/<int:thread_id>", methods=["PATCH"])
+    @jwt_required()
     def update_community_thread(thread_id: int):
         thread = db.get_or_404(CommunityThread, thread_id)
         data = request.get_json(silent=True) or {}
 
-        try:
-            user_id = int(data.get("user_id"))
-        except (TypeError, ValueError):
-            return jsonify({"error": "user_id is required"}), 400
-
-        if thread.user_id != user_id:
+        if thread.user_id != current_user_id():
             return jsonify({"error": "Only the thread owner can edit this thread"}), 403
 
         title = str(data.get("title", "")).strip()
@@ -661,14 +657,11 @@ def create_app(db_url: str = None) -> Flask:
 
     # Delete thread (owner only)
     @app.route("/api/community/threads/<int:thread_id>", methods=["DELETE"])
+    @jwt_required()
     def delete_community_thread(thread_id: int):
         thread = db.get_or_404(CommunityThread, thread_id)
-        user_id = request.args.get("user_id", type=int)
 
-        if not user_id:
-            return jsonify({"error": "user_id is required"}), 400
-
-        if thread.user_id != user_id:
+        if thread.user_id != current_user_id():
             return jsonify({"error": "Only the thread owner can delete this thread"}), 403
 
         ThreadReply.query.filter_by(thread_id=thread.id).delete()
@@ -691,14 +684,11 @@ def create_app(db_url: str = None) -> Flask:
 
     # Send reply to a thread
     @app.route("/api/community/threads/<int:thread_id>/replies", methods=["POST"])
+    @jwt_required()
     def create_thread_reply(thread_id: int):
         thread = db.get_or_404(CommunityThread, thread_id)
         data = request.get_json(silent=True) or {}
-
-        try:
-            user_id = int(data.get("user_id"))
-        except (TypeError, ValueError):
-            return jsonify({"error": "user_id is required"}), 400
+        user_id = current_user_id()
 
         user = db.session.get(User, user_id)
         if not user:
@@ -719,16 +709,12 @@ def create_app(db_url: str = None) -> Flask:
 
     # Edit reply (owner only)
     @app.route("/api/community/replies/<int:reply_id>", methods=["PATCH"])
+    @jwt_required()
     def update_thread_reply(reply_id: int):
         reply = db.get_or_404(ThreadReply, reply_id)
         data = request.get_json(silent=True) or {}
 
-        try:
-            user_id = int(data.get("user_id"))
-        except (TypeError, ValueError):
-            return jsonify({"error": "user_id is required"}), 400
-
-        if reply.user_id != user_id:
+        if reply.user_id != current_user_id():
             return jsonify({"error": "Only the reply owner can edit this reply"}), 403
 
         content = str(data.get("content", "")).strip()
@@ -741,14 +727,11 @@ def create_app(db_url: str = None) -> Flask:
 
     # Delete reply (owner only)
     @app.route("/api/community/replies/<int:reply_id>", methods=["DELETE"])
+    @jwt_required()
     def delete_thread_reply(reply_id: int):
         reply = db.get_or_404(ThreadReply, reply_id)
-        user_id = request.args.get("user_id", type=int)
 
-        if not user_id:
-            return jsonify({"error": "user_id is required"}), 400
-
-        if reply.user_id != user_id:
+        if reply.user_id != current_user_id():
             return jsonify({"error": "Only the reply owner can delete this reply"}), 403
 
         db.session.delete(reply)
@@ -805,8 +788,12 @@ def create_app(db_url: str = None) -> Flask:
 
     # GET /api/profile/<user_id>
     @app.route("/api/profile/<int:user_id>", methods=["GET"])
+    @jwt_required()
     def get_profile(user_id: int):
-        """Return profile settings for one user."""
+        """Return profile settings for the logged-in user."""
+        if user_id != current_user_id():
+            return jsonify({"error": "Forbidden"}), 403
+
         user = db.get_or_404(User, user_id)
         profile = ensure_user_profile(user.id)
 
@@ -818,8 +805,12 @@ def create_app(db_url: str = None) -> Flask:
 
     # PUT /api/profile/<user_id>
     @app.route("/api/profile/<int:user_id>", methods=["PUT"])
+    @jwt_required()
     def update_profile(user_id: int):
-        """Create or update profile settings for one user."""
+        """Create or update profile settings for the logged-in user."""
+        if user_id != current_user_id():
+            return jsonify({"error": "Forbidden"}), 403
+
         user = db.get_or_404(User, user_id)
         profile = ensure_user_profile(user.id)
         data = request.get_json(silent=True) or {}
@@ -834,14 +825,11 @@ def create_app(db_url: str = None) -> Flask:
 
     # PATCH /api/account/id
     @app.route("/api/account/id", methods=["PATCH"])
+    @jwt_required()
     def update_account_identity():
         """Update username/email after confirming the current password."""
         data = request.get_json(silent=True) or {}
-
-        try:
-            user_id = int(data.get("user_id"))
-        except (TypeError, ValueError):
-            return jsonify({"error": "user_id is required"}), 400
+        user_id = current_user_id()
 
         current_password = str(data.get("current_password", ""))
         new_username = str(data.get("username", "")).strip()
@@ -874,14 +862,11 @@ def create_app(db_url: str = None) -> Flask:
 
     # POST /api/account/change-password
     @app.route("/api/account/change-password", methods=["POST"])
+    @jwt_required()
     def change_password():
         """Change password for a user after verifying the current password."""
         data = request.get_json(silent=True) or {}
-
-        try:
-            user_id = int(data.get("user_id"))
-        except (TypeError, ValueError):
-            return jsonify({"error": "user_id is required"}), 400
+        user_id = current_user_id()
 
         current_password = str(data.get("current_password", ""))
         new_password = str(data.get("new_password", ""))
@@ -902,8 +887,12 @@ def create_app(db_url: str = None) -> Flask:
 
     # DELETE /api/account/<user_id>
     @app.route("/api/account/<int:user_id>", methods=["DELETE"])
+    @jwt_required()
     def delete_account(user_id: int):
         """Delete account (and related profile/tracker data) after password confirmation."""
+        if user_id != current_user_id():
+            return jsonify({"error": "Forbidden"}), 403
+
         data = request.get_json(silent=True) or {}
         password = str(data.get("password", ""))
 

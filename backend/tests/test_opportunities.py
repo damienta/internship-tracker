@@ -1,3 +1,6 @@
+from flask_jwt_extended import create_access_token
+
+
 def test_jobs_returns_200(client):
     assert client.get("/api/jobs").status_code == 200
 
@@ -110,13 +113,15 @@ def test_upcoming_jobs_returns_results_key(client):
     assert "results" in data
 
 
-def test_sort_match_without_user_id_returns_400(client):
+def test_sort_match_without_token_returns_401(client):
     response = client.get("/api/jobs?sort=match")
-    assert response.status_code == 400
+    assert response.status_code == 401
 
 
-def test_sort_match_with_missing_user_returns_404(client):
-    response = client.get("/api/jobs?sort=match&user_id=999999")
+def test_sort_match_with_missing_user_returns_404(app, client):
+    with app.app_context():
+        token = create_access_token(identity="999999")
+    response = client.get("/api/jobs?sort=match", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 404
 
 

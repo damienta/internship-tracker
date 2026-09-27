@@ -13,12 +13,13 @@ def _register_user(client, prefix="profile", password="password123"):
         json={"username": username, "email": email, "password": password},
     )
     assert response.status_code == 201
-    return response.get_json()["user"], password
+    data = response.get_json()
+    return {**data["user"], "auth": {"Authorization": f"Bearer {data['token']}"}}, password
 
 
 def test_get_profile_returns_default_shape(client):
     user, _ = _register_user(client, "profile_get")
-    response = client.get(f"/api/profile/{user['id']}")
+    response = client.get(f"/api/profile/{user['id']}", headers=user["auth"])
     assert response.status_code == 200
     data = response.get_json()
     assert data["username"] == user["username"]
@@ -33,7 +34,7 @@ def test_update_profile_saves_fields(client):
         "degree": "Computer Science",
         "skills": ["Python", "python", "SQL", ""],
     }
-    response = client.put(f"/api/profile/{user['id']}", json=payload)
+    response = client.put(f"/api/profile/{user['id']}", json=payload, headers=user["auth"])
     assert response.status_code == 200
     profile = response.get_json()["profile"]
     assert profile["full_name"] == "Test User"
@@ -46,8 +47,8 @@ def test_update_account_identity_requires_correct_password(client):
     user, _ = _register_user(client, "identity_bad")
     response = client.patch(
         "/api/account/id",
+        headers=user["auth"],
         json={
-            "user_id": user["id"],
             "username": f"{user['username']}_new",
             "email": user["email"],
             "current_password": "wrong-password",
@@ -63,8 +64,8 @@ def test_update_account_identity_success(client):
 
     response = client.patch(
         "/api/account/id",
+        headers=user["auth"],
         json={
-            "user_id": user["id"],
             "username": new_username,
             "email": new_email,
             "current_password": password,
@@ -82,8 +83,8 @@ def test_update_account_identity_duplicate_username_returns_400(client):
 
     response = client.patch(
         "/api/account/id",
+        headers=owner["auth"],
         json={
-            "user_id": owner["id"],
             "username": other["username"],
             "email": owner["email"],
             "current_password": owner_password,
@@ -96,8 +97,8 @@ def test_update_account_identity_invalid_email_returns_400(client):
     user, password = _register_user(client, "identity_bad_email")
     response = client.patch(
         "/api/account/id",
+        headers=user["auth"],
         json={
-            "user_id": user["id"],
             "username": user["username"],
             "email": "not-an-email",
             "current_password": password,
@@ -112,7 +113,7 @@ def test_change_password_success_then_login_with_new_password(client):
 
     response = client.post(
         "/api/account/change-password",
-        json={"user_id": user["id"], "current_password": old_password, "new_password": new_password},
+        headers=user["auth"], json={"current_password": old_password, "new_password": new_password},
     )
     assert response.status_code == 200
 
@@ -133,21 +134,21 @@ def test_change_password_short_new_password_returns_400(client):
     user, password = _register_user(client, "change_pw_short")
     response = client.post(
         "/api/account/change-password",
-        json={"user_id": user["id"], "current_password": password, "new_password": "short"},
+        headers=user["auth"], json={"current_password": password, "new_password": "short"},
     )
     assert response.status_code == 400
 
 
 def test_delete_account_requires_password(client):
     user, _ = _register_user(client, "delete_req")
-    response = client.delete(f"/api/account/{user['id']}", json={})
+    response = client.delete(f"/api/account/{user['id']}", json={}, headers=user["auth"])
     assert response.status_code == 400
 
 
 def test_delete_account_success(client):
     user, password = _register_user(client, "delete_ok")
 
-    response = client.delete(f"/api/account/{user['id']}", json={"password": password})
+    response = client.delete(f"/api/account/{user['id']}", json={"password": password}, headers=user["auth"])
     assert response.status_code == 200
 
     login = client.post(
@@ -159,5 +160,46 @@ def test_delete_account_success(client):
 
 def test_delete_account_wrong_password_returns_401(client):
     user, _ = _register_user(client, "delete_wrong_pw")
-    response = client.delete(f"/api/account/{user['id']}", json={"password": "wrong-password"})
+    response = client.delete(f"/api/account/{user['id']}", json={"password": "wrong-password"}, headers=user["auth"])
     assert response.status_code == 401
+
+
+def test_profile_requires_token(client):
+    user, _ = _register_user(client, "profile_no_token")
+    response = client.get(f"/api/profile/{user['id']}")
+    assert response.status_code == 401
+
+
+def test_profile_of_another_user_is_forbidden(client):
+    owner, _ = _register_user(client, "profile_owner")
+    other, _ = _register_user(client, "profile_other")
+
+    read = client.get(f"/api/profile/{owner['id']}", headers=other["auth"])
+    assert read.status_code == 403
+
+    write = client.put(f"/api/profile/{owner['id']}", json={"full_name": "Hijack"}, headers=other["auth"])
+    assert write.status_code == 403
+
+
+def test_change_password_ignores_user_id_from_client(client):
+    owner, owner_password = _register_user(client, "pw_owner")
+    other, other_password = _register_user(client, "pw_other")
+
+    # A user_id in the body is ignored, so this changes the caller's own password
+    response = client.post(
+        "/api/account/change-password",
+        headers=other["auth"],
+        json={"user_id": owner["id"], "current_password": other_password, "new_password": "takenover123"},
+    )
+    assert response.status_code == 200
+
+    owner_login = client.post("/api/auth/login", json={"username": owner["username"], "password": owner_password})
+    assert owner_login.status_code == 200
+
+
+def test_delete_another_users_account_is_forbidden(client):
+    owner, owner_password = _register_user(client, "delete_owner")
+    other, _ = _register_user(client, "delete_other")
+
+    response = client.delete(f"/api/account/{owner['id']}", json={"password": owner_password}, headers=other["auth"])
+    assert response.status_code == 403

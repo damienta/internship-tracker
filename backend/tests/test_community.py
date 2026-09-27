@@ -13,7 +13,8 @@ def _register_user(client, prefix="community"):
         json={"username": username, "email": email, "password": "password123"},
     )
     assert response.status_code == 201
-    return response.get_json()["user"]
+    data = response.get_json()
+    return {**data["user"], "auth": {"Authorization": f"Bearer {data['token']}"}}
 
 
 def test_community_thread_crud_flow_owner(client):
@@ -21,8 +22,8 @@ def test_community_thread_crud_flow_owner(client):
 
     create_response = client.post(
         "/api/community/threads",
+        headers=user["auth"],
         json={
-            "user_id": user["id"],
             "category": "discussion",
             "title": "Interview tips",
             "content": "Share your best interview prep approach.",
@@ -38,14 +39,14 @@ def test_community_thread_crud_flow_owner(client):
 
     update_response = client.patch(
         f"/api/community/threads/{thread['id']}",
-        json={"user_id": user["id"], "title": "Interview tips updated", "content": "Updated content."},
+        headers=user["auth"], json={"title": "Interview tips updated", "content": "Updated content."},
     )
     assert update_response.status_code == 200
     assert update_response.get_json()["title"] == "Interview tips updated"
 
     delete_response = client.delete(
         f"/api/community/threads/{thread['id']}",
-        query_string={"user_id": user["id"]},
+        headers=user["auth"],
     )
     assert delete_response.status_code == 200
 
@@ -56,8 +57,8 @@ def test_community_thread_update_forbidden_for_non_owner(client):
 
     create_response = client.post(
         "/api/community/threads",
+        headers=owner["auth"],
         json={
-            "user_id": owner["id"],
             "category": "discussion",
             "title": "Owner thread",
             "content": "Only owner can edit.",
@@ -68,7 +69,7 @@ def test_community_thread_update_forbidden_for_non_owner(client):
 
     forbidden = client.patch(
         f"/api/community/threads/{thread_id}",
-        json={"user_id": other["id"], "title": "Hijack", "content": "Nope"},
+        headers=other["auth"], json={"title": "Hijack", "content": "Nope"},
     )
     assert forbidden.status_code == 403
 
@@ -79,8 +80,8 @@ def test_community_thread_delete_forbidden_for_non_owner(client):
 
     create_response = client.post(
         "/api/community/threads",
+        headers=owner["auth"],
         json={
-            "user_id": owner["id"],
             "category": "discussion",
             "title": "Owner thread delete",
             "content": "Only owner can delete.",
@@ -91,7 +92,7 @@ def test_community_thread_delete_forbidden_for_non_owner(client):
 
     forbidden = client.delete(
         f"/api/community/threads/{thread_id}",
-        query_string={"user_id": other["id"]},
+        headers=other["auth"],
     )
     assert forbidden.status_code == 403
 
@@ -100,8 +101,8 @@ def test_community_invalid_category_returns_400(client):
     user = _register_user(client, "invalid_category")
     response = client.post(
         "/api/community/threads",
+        headers=user["auth"],
         json={
-            "user_id": user["id"],
             "category": "not-a-category",
             "title": "Bad category",
             "content": "Should fail",
@@ -114,8 +115,8 @@ def test_community_company_ratings_invalid_rating_returns_400(client):
     user = _register_user(client, "invalid_rating")
     response = client.post(
         "/api/community/threads",
+        headers=user["auth"],
         json={
-            "user_id": user["id"],
             "category": "company-ratings",
             "title": "Rate this company",
             "content": "Rating missing/invalid",
@@ -129,8 +130,8 @@ def test_community_empty_thread_content_returns_400(client):
     user = _register_user(client, "empty_content")
     response = client.post(
         "/api/community/threads",
+        headers=user["auth"],
         json={
-            "user_id": user["id"],
             "category": "discussion",
             "title": "",
             "content": "",
@@ -144,8 +145,8 @@ def test_community_reply_crud_flow_owner(client):
 
     thread_resp = client.post(
         "/api/community/threads",
+        headers=user["auth"],
         json={
-            "user_id": user["id"],
             "category": "discussion",
             "title": "Reply test",
             "content": "Thread for reply tests.",
@@ -156,7 +157,7 @@ def test_community_reply_crud_flow_owner(client):
 
     reply_create = client.post(
         f"/api/community/threads/{thread_id}/replies",
-        json={"user_id": user["id"], "content": "First reply"},
+        headers=user["auth"], json={"content": "First reply"},
     )
     assert reply_create.status_code == 201
     reply = reply_create.get_json()
@@ -167,14 +168,14 @@ def test_community_reply_crud_flow_owner(client):
 
     reply_update = client.patch(
         f"/api/community/replies/{reply['id']}",
-        json={"user_id": user["id"], "content": "Edited reply"},
+        headers=user["auth"], json={"content": "Edited reply"},
     )
     assert reply_update.status_code == 200
     assert reply_update.get_json()["content"] == "Edited reply"
 
     reply_delete = client.delete(
         f"/api/community/replies/{reply['id']}",
-        query_string={"user_id": user["id"]},
+        headers=user["auth"],
     )
     assert reply_delete.status_code == 200
 
@@ -185,8 +186,8 @@ def test_community_reply_update_forbidden_for_non_owner(client):
 
     thread_resp = client.post(
         "/api/community/threads",
+        headers=owner["auth"],
         json={
-            "user_id": owner["id"],
             "category": "discussion",
             "title": "Reply forbidden",
             "content": "Thread",
@@ -197,13 +198,34 @@ def test_community_reply_update_forbidden_for_non_owner(client):
 
     reply_resp = client.post(
         f"/api/community/threads/{thread_id}/replies",
-        json={"user_id": owner["id"], "content": "Owner reply"},
+        headers=owner["auth"], json={"content": "Owner reply"},
     )
     assert reply_resp.status_code == 201
     reply_id = reply_resp.get_json()["id"]
 
     forbidden = client.patch(
         f"/api/community/replies/{reply_id}",
-        json={"user_id": other["id"], "content": "Hijack"},
+        headers=other["auth"], json={"content": "Hijack"},
     )
     assert forbidden.status_code == 403
+
+
+def test_community_create_thread_requires_token(client):
+    response = client.post(
+        "/api/community/threads",
+        json={"category": "discussion", "title": "No token", "content": "Should fail"},
+    )
+    assert response.status_code == 401
+
+
+def test_community_thread_author_comes_from_token(client):
+    owner = _register_user(client, "thread_impersonated")
+    other = _register_user(client, "thread_impersonator")
+
+    response = client.post(
+        "/api/community/threads",
+        headers=other["auth"],
+        json={"user_id": owner["id"], "category": "discussion", "title": "Spoof", "content": "Posting as someone else"},
+    )
+    assert response.status_code == 201
+    assert response.get_json()["user_id"] == other["id"]

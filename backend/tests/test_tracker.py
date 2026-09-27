@@ -6,6 +6,7 @@ def _unique_username(prefix="tracker"):
 
 
 def _register_user(client, prefix="tracker"):
+    """Register a user and return their user dict with an 'auth' header dict attached."""
     username = _unique_username(prefix)
     email = f"{username}@example.com"
     response = client.post(
@@ -13,12 +14,12 @@ def _register_user(client, prefix="tracker"):
         json={"username": username, "email": email, "password": "password123"},
     )
     assert response.status_code == 201
-    return response.get_json()["user"]
+    data = response.get_json()
+    return {**data["user"], "auth": {"Authorization": f"Bearer {data['token']}"}}
 
 
-def _sample_tracker_payload(user_id):
+def _sample_tracker_payload():
     return {
-        "user_id": user_id,
         "status": "Applied",
         "company": "Acme Ltd",
         "role": "Software Intern",
@@ -31,32 +32,30 @@ def _sample_tracker_payload(user_id):
 
 def test_tracker_crud_flow(client):
     user = _register_user(client, "crud")
-    payload = _sample_tracker_payload(user["id"])
+    payload = _sample_tracker_payload()
 
-    create_response = client.post("/api/tracker", json=payload)
+    create_response = client.post("/api/tracker", json=payload, headers=user["auth"])
     assert create_response.status_code == 201
     created = create_response.get_json()
     assert created["company"] == payload["company"]
 
-    list_response = client.get("/api/tracker", query_string={"user_id": user["id"]})
+    list_response = client.get("/api/tracker", headers=user["auth"])
     assert list_response.status_code == 200
     entries = list_response.get_json()
     assert any(entry["id"] == created["id"] for entry in entries)
 
     patch_response = client.patch(
         f"/api/tracker/{created['id']}",
-        json={"user_id": user["id"], "status": "Offer"},
+        json={"status": "Offer"},
+        headers=user["auth"],
     )
     assert patch_response.status_code == 200
     assert patch_response.get_json()["status"] == "Offer"
 
-    delete_response = client.delete(
-        f"/api/tracker/{created['id']}",
-        query_string={"user_id": user["id"]},
-    )
+    delete_response = client.delete(f"/api/tracker/{created['id']}", headers=user["auth"])
     assert delete_response.status_code == 200
 
-    after_delete = client.get("/api/tracker", query_string={"user_id": user["id"]}).get_json()
+    after_delete = client.get("/api/tracker", headers=user["auth"]).get_json()
     assert all(entry["id"] != created["id"] for entry in after_delete)
 
 
@@ -64,76 +63,105 @@ def test_tracker_validation_missing_required_fields(client):
     user = _register_user(client, "validate_missing")
     response = client.post(
         "/api/tracker",
-        json={"user_id": user["id"], "status": "Applied", "company": "", "role": "", "link": ""},
+        json={"status": "Applied", "company": "", "role": "", "link": ""},
+        headers=user["auth"],
     )
     assert response.status_code == 400
 
 
-def test_tracker_get_without_user_id_returns_400(client):
+def test_tracker_get_without_token_returns_401(client):
     response = client.get("/api/tracker")
-    assert response.status_code == 400
+    assert response.status_code == 401
+    assert response.get_json()["code"] == "session_expired"
+
+
+def test_tracker_get_with_invalid_token_returns_401(client):
+    response = client.get("/api/tracker", headers={"Authorization": "Bearer not-a-real-token"})
+    assert response.status_code == 401
+
+
+def test_tracker_list_ignores_user_id_from_client(client):
+    owner = _register_user(client, "list_owner")
+    other = _register_user(client, "list_other")
+    created = client.post("/api/tracker", json=_sample_tracker_payload(), headers=owner["auth"])
+    assert created.status_code == 201
+
+    # Asking for someone else's entries only ever returns your own
+    response = client.get("/api/tracker", query_string={"user_id": owner["id"]}, headers=other["auth"])
+    assert response.status_code == 200
+    assert response.get_json() == []
+
+
+def test_tracker_create_ignores_user_id_from_client(client):
+    owner = _register_user(client, "create_owner")
+    other = _register_user(client, "create_other")
+    payload = {**_sample_tracker_payload(), "user_id": owner["id"]}
+
+    response = client.post("/api/tracker", json=payload, headers=other["auth"])
+    assert response.status_code == 201
+    assert response.get_json()["user_id"] == other["id"]
 
 
 def test_tracker_validation_invalid_link(client):
     user = _register_user(client, "validate_link")
-    payload = _sample_tracker_payload(user["id"])
+    payload = _sample_tracker_payload()
     payload["link"] = "example.com/no-scheme"
-    response = client.post("/api/tracker", json=payload)
+    response = client.post("/api/tracker", json=payload, headers=user["auth"])
     assert response.status_code == 400
 
 
 def test_tracker_validation_invalid_date_format(client):
     user = _register_user(client, "validate_date")
-    payload = _sample_tracker_payload(user["id"])
+    payload = _sample_tracker_payload()
     payload["opening_date"] = "04/01/2026"
-    response = client.post("/api/tracker", json=payload)
+    response = client.post("/api/tracker", json=payload, headers=user["auth"])
     assert response.status_code == 400
 
 
 def test_tracker_validation_closing_before_opening(client):
     user = _register_user(client, "validate_order")
-    payload = _sample_tracker_payload(user["id"])
+    payload = _sample_tracker_payload()
     payload["opening_date"] = "2026-05-01"
     payload["closing_date"] = "2026-04-01"
-    response = client.post("/api/tracker", json=payload)
+    response = client.post("/api/tracker", json=payload, headers=user["auth"])
     assert response.status_code == 400
 
 
 def test_tracker_validation_invalid_status_on_create(client):
     user = _register_user(client, "validate_status")
-    payload = _sample_tracker_payload(user["id"])
+    payload = _sample_tracker_payload()
     payload["status"] = "Unknown Status"
-    response = client.post("/api/tracker", json=payload)
+    response = client.post("/api/tracker", json=payload, headers=user["auth"])
     assert response.status_code == 400
 
 
 def test_tracker_validation_invalid_internship_id(client):
     user = _register_user(client, "validate_internship")
-    payload = _sample_tracker_payload(user["id"])
+    payload = _sample_tracker_payload()
     payload["internship_id"] = 999999
-    response = client.post("/api/tracker", json=payload)
+    response = client.post("/api/tracker", json=payload, headers=user["auth"])
     assert response.status_code == 404
 
 
 def test_tracker_validation_non_integer_internship_id(client):
     user = _register_user(client, "validate_internship_type")
-    payload = _sample_tracker_payload(user["id"])
+    payload = _sample_tracker_payload()
     payload["internship_id"] = "abc"
-    response = client.post("/api/tracker", json=payload)
+    response = client.post("/api/tracker", json=payload, headers=user["auth"])
     assert response.status_code == 400
 
 
 def test_tracker_update_forbidden_for_non_owner(client):
     owner = _register_user(client, "forbid_owner")
     other = _register_user(client, "forbid_other")
-    payload = _sample_tracker_payload(owner["id"])
-    created = client.post("/api/tracker", json=payload)
+    created = client.post("/api/tracker", json=_sample_tracker_payload(), headers=owner["auth"])
     assert created.status_code == 201
     entry_id = created.get_json()["id"]
 
     response = client.patch(
         f"/api/tracker/{entry_id}",
-        json={"user_id": other["id"], "status": "Offer"},
+        json={"user_id": owner["id"], "status": "Offer"},
+        headers=other["auth"],
     )
     assert response.status_code == 403
 
@@ -141,42 +169,42 @@ def test_tracker_update_forbidden_for_non_owner(client):
 def test_tracker_delete_forbidden_for_non_owner(client):
     owner = _register_user(client, "forbid_del_owner")
     other = _register_user(client, "forbid_del_other")
-    payload = _sample_tracker_payload(owner["id"])
-    created = client.post("/api/tracker", json=payload)
+    created = client.post("/api/tracker", json=_sample_tracker_payload(), headers=owner["auth"])
     assert created.status_code == 201
     entry_id = created.get_json()["id"]
 
     response = client.delete(
         f"/api/tracker/{entry_id}",
-        query_string={"user_id": other["id"]},
+        query_string={"user_id": owner["id"]},
+        headers=other["auth"],
     )
     assert response.status_code == 403
 
 
 def test_tracker_update_invalid_status_returns_400(client):
     user = _register_user(client, "update_status")
-    payload = _sample_tracker_payload(user["id"])
-    created = client.post("/api/tracker", json=payload)
+    created = client.post("/api/tracker", json=_sample_tracker_payload(), headers=user["auth"])
     assert created.status_code == 201
     entry_id = created.get_json()["id"]
 
     response = client.patch(
         f"/api/tracker/{entry_id}",
-        json={"user_id": user["id"], "status": "Invalid"},
+        json={"status": "Invalid"},
+        headers=user["auth"],
     )
     assert response.status_code == 400
 
 
 def test_tracker_update_invalid_date_format_returns_400(client):
     user = _register_user(client, "update_date")
-    payload = _sample_tracker_payload(user["id"])
-    created = client.post("/api/tracker", json=payload)
+    created = client.post("/api/tracker", json=_sample_tracker_payload(), headers=user["auth"])
     assert created.status_code == 201
     entry_id = created.get_json()["id"]
 
     response = client.patch(
         f"/api/tracker/{entry_id}",
-        json={"user_id": user["id"], "opening_date": "01/04/2026"},
+        json={"opening_date": "01/04/2026"},
+        headers=user["auth"],
     )
     assert response.status_code == 400
 
@@ -188,13 +216,15 @@ def test_tracker_from_opportunity_prevents_duplicate_for_same_user(client):
 
     first = client.post(
         "/api/tracker/from-opportunity",
-        json={"user_id": user["id"], "internship_id": internship_id},
+        json={"internship_id": internship_id},
+        headers=user["auth"],
     )
     assert first.status_code == 201
 
     second = client.post(
         "/api/tracker/from-opportunity",
-        json={"user_id": user["id"], "internship_id": internship_id},
+        json={"internship_id": internship_id},
+        headers=user["auth"],
     )
     assert second.status_code == 409
 
@@ -207,11 +237,13 @@ def test_tracker_from_opportunity_allows_different_users(client):
 
     first = client.post(
         "/api/tracker/from-opportunity",
-        json={"user_id": user_a["id"], "internship_id": internship_id},
+        json={"internship_id": internship_id},
+        headers=user_a["auth"],
     )
     second = client.post(
         "/api/tracker/from-opportunity",
-        json={"user_id": user_b["id"], "internship_id": internship_id},
+        json={"internship_id": internship_id},
+        headers=user_b["auth"],
     )
 
     assert first.status_code == 201
