@@ -4,6 +4,7 @@ urllib3==2.1.0 # URL handling and robots.txt checking
 
 flask==3.0.0 # Framework for APIs
 flask-sqlalchemy==3.1.1 # Database ORM
+SQLAlchemy>=2.0,<2.1 # 2.1 switched the default Postgres driver to psycopg 3
 flask-cors==4.0.0 # Cross-origin request support (required for frontend)
 flask-jwt-extended==4.6.0 # JWT token creation and verification
 psycopg2-binary==2.9.9 # PostgreSQL adapter
