@@ -44,6 +44,36 @@ GitHub Actions (every 6 hours)
 - **Frontend** (`frontend/`) is React 19 with Vite, Tailwind CSS and React Router.
 - **CI**: GitHub Actions runs the Pytest suite on every backend change, and runs the scrapers on a schedule.
 
+## How it's hosted
+
+The app is split across three free services, and each one does one job:
+
+| Service | What it runs | Its job |
+|---|---|---|
+| **Vercel** | `frontend/` | Serves the website you see in your browser |
+| **Render** | `backend/` | Runs the API that handles logins and reads/writes data |
+| **Neon** | PostgreSQL | Stores everything: users, tracker entries, posts and jobs |
+| **GitHub Actions** | `run_scrapers.py` | Finds new jobs every 6 hours and saves them to Neon |
+
+**What happens when you use the site:**
+
+1. You open the site. **Vercel** sends the React app to your browser.
+2. You click something, like "Add to Tracker". The browser sends a request to the API on **Render**, along with your login token.
+3. Render checks the token, then reads or saves the data in the **Neon** database.
+4. Render sends the result back, and the page updates.
+
+Jobs arrive separately. Every 6 hours **GitHub Actions** runs the scrapers, which save new listings straight into Neon, so they show up on the site with no redeploy.
+
+**How they find each other:** each service is given the address of the next one through a setting, never in the code.
+
+- Vercel's `VITE_API_BASE_URL` points the website at the Render API.
+- Render's `DATABASE_URL` points the API at the Neon database.
+- GitHub Actions uses its own `DATABASE_URL` secret, set to the same Neon database, so the scrapers write where the API reads.
+
+**Deploying changes:** pushing to `main` redeploys automatically. Vercel rebuilds the website, and Render restarts the API.
+
+> The API runs on Render's free plan, which goes to sleep when nobody is using it. The first visit after a quiet spell can take up to a minute while it wakes up. After that, it's fast.
+
 ## Tech stack
 
 | Area | Tools |
